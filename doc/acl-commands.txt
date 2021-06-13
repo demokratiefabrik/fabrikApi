@@ -1,0 +1,19 @@
+ACL LINEAGE
+
+  list(lineage(content))
+  # lineage(content)[0]
+  from pyramid.traversal import find_root
+  assembly = find_root(content)
+  from pyramid.security import principals_allowed_by_permission
+  principals_allowed_by_permission(content, 'manage')
+          from pyramid.security import principals_allowed_by_permission, has_permission
+        has_permission(context=content, request=self.request, permission="observe")
+
+
+
+### NOTE: 
+CORNICE PATHS REQUIRE SOMETIMES TRAILING constant
+NOT
+path='/assembly/{assembly_identifier}/contenttree/{contenttree_id:\d+}/content/{content_id:\d+}',
+BUT
+path='/assembly/{assembly_identifier}/contenttree/{contenttree_id:\d+}/content/{content_id:\d+}/save',

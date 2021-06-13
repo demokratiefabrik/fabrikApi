@@ -1,0 +1,6 @@
+[console_scripts]
+check_peerreview = fabrikApi.scripts.check_peerreview:main
+
+[paste.app_factory]
+main = fabrikApi:main
+

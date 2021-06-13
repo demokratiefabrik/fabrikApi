@@ -1,0 +1,4 @@
+[app:main]
+use = config:development.ini#main
+example_data = true
+sqlalchemy.url = mysql://root:demokratiefabrik@veldev:3306/fabrikApi_testing?charset=utf8

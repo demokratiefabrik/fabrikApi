@@ -1,0 +1,16 @@
+cornice/__init__.py,sha256=YS8WovbdD3ICvCeq3iRBe462JkwvPwxwb2kf3YWiNog,3913
+cornice/cors.py,sha256=hFv8mQii-SizipLcTTJUVWPy436xs3SigqDQKg7AXRM,5013
+cornice/errors.py,sha256=jYErjOupug5Kvc-p9eCw_T6u33XUR73sAf4B3mbpW4k,1493
+cornice/pyramidhook.py,sha256=MtEJ6WIsSMhg-w1r8ERDdg_mYlOoBVgvM8sxS70_OBc,14014
+cornice/renderer.py,sha256=IPhwC55jS5aIdmhvhbvsGixkHD6584vxTWjpyCs3jIc,3339
+cornice/resource.py,sha256=kjkiEN4_3sDq5YiS6k0lg3AmJ9_91_1T5Dw1vhpGy3Y,6304
+cornice/service.py,sha256=qRq-YMX8xkSV7xyh46KYB98ua8-lHUjGhlEf3-9L4pc,23268
+cornice/util.py,sha256=upMqKx0hLDQjRVZGstNrJJjLPdj9vJr7ZxegUCt-ueA,4139
+cornice/validators/__init__.py,sha256=RbjTF1v6tOUVI7U8mspzBpg0sevfOEpVlEW9j61q-Mw,3089
+cornice/validators/_colander.py,sha256=KvhS3npfpHEKwg-_or6CZskDOFrwATTK-1eI2Ra_rzI,4774
+cornice/validators/_marshmallow.py,sha256=6rH7A8olp1ewhUveXO5iBTpKI6Jobf9n--wzjgJG9Yo,7454
+cornice-5.1.0.dist-info/LICENSE,sha256=vQoPwOqOydcdmi0oleie8yb5tlrT-fUvTnczT0WHg-g,194
+cornice-5.1.0.dist-info/METADATA,sha256=2HMrgQK929ODeYYxp2xoXbxv6DPrm1EvC0qwo32p7dk,17473
+cornice-5.1.0.dist-info/WHEEL,sha256=kGT74LWyRUZrL4VgLh6_g12IeVl_9u9ZVhadrgXZUEY,110
+cornice-5.1.0.dist-info/top_level.txt,sha256=fGmdTG5Paqg_QO89mH3UYmHjH1iiDgO2aHZAkGfAWaQ,8
+cornice-5.1.0.dist-info/RECORD,,
