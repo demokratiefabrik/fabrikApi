@@ -5,11 +5,12 @@
 venv/
 
 .history
-
 .vscode
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+**/__pycache__
+*.pyc
 *.py[cod]
 
 # Distribution / packaging
@@ -46,4 +47,3 @@ docs/_build/
 
 .idea
 .history
-**/__pycache__

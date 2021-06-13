@@ -1,0 +1,11 @@
+# comment
+*/temp*
+*/*/temp*
+temp?
+venv/
+doc/
+build/
+.vscode/
+.git/
+.history/
+.pyteste_cache/
