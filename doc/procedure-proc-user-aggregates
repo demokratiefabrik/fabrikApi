@@ -1,0 +1,76 @@
+create
+    definer = root@localhost procedure procUserAggregates() comment 'Calc Aggregates of user data'
+begin
+
+    -- COLLECT RESPONSES (number of contents.... => number of users)
+    DROP table IF EXISTS user_aggregates_content_response;
+    CREATE TABLE user_aggregates_content_response as
+    (
+        SELECT
+            user_created_id as response_user_id,
+            -- count(user_created_id) as created_count,
+            count(agg_progression_count) as response_progression_count,
+            avg(agg_salience_avg) as response_salience_avg,
+            count(agg_salience_count) as response_salience_count,
+            avg(agg_rating_avg) as response_rating_avg,
+            count(agg_rating_count) as response_rating_count
+        FROM
+            content
+        GROUP BY response_user_id
+        ORDER BY response_user_id
+    );
+
+    -- COLLECT ASSEMBLY_PROGRESSION (number of users)
+    DROP table IF EXISTS user_aggregates_assembly_progression;
+    CREATE TABLE user_aggregates_assembly_progression as
+    (
+        SELECT
+            user_id as assembly_user_id,
+            sum(number_of_day_sessions) as number_of_day_sessions,
+            max(date_last_interaction) as date_last_interaction
+        FROM
+            assembly_progression
+        WHERE (assembly_progression.by_manager IS Null or assembly_progression.by_manager = 0)
+        GROUP BY assembly_user_id
+    );
+
+    -- JOIN TO ONE aggregate TABLE
+    DROP table IF EXISTS user_aggregates;
+    CREATE TABLE user_aggregates as
+    (
+        SELECT *
+        FROM user_aggregates_assembly_progression as asspro
+        LEFT JOIN user_aggregates_content_response as conres
+            ON asspro.assembly_user_id = conres.response_user_id
+        ORDER BY assembly_user_id);
+
+    -- UPDATE USER TABLE
+    UPDATE user
+    INNER JOIN
+        user_aggregates as agg ON user.id = agg.assembly_user_id
+    SET
+        -- content_rating_count
+        -- content_salience_count
+        -- content_created_count
+        user.date_last_interaction = agg.date_last_interaction,
+        user.agg_response_progression_count = agg.response_progression_count,
+        user.agg_response_salience_avg = agg.response_salience_avg,
+        user.agg_response_salience_count = agg.response_salience_count,
+        user.agg_response_rating_avg = agg.response_rating_avg,
+        user.agg_response_rating_count = agg.response_rating_count,
+        user.agg_assembly_number_of_day_sessions = agg.number_of_day_sessions
+
+    WHERE 1 = 1;
+
+    -- UPDATE ASSEMBLY TABLE
+    UPDATE assembly
+    INNER JOIN
+        (SELECT assembly_id, count(*) as nof FROM assembly_progression GROUP BY assembly_id) as ASP
+        ON assembly.id = ASP.assembly_id
+    SET
+        agg_last_update = now(),
+        agg_user_count = ASP.nof
+    WHERE 1 = 1;
+
+end;
+

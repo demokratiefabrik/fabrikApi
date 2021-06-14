@@ -106,13 +106,13 @@ def notified_after_a_stage_has_been_unalerted(event):
         event.request.registry.notify(raiseEvent)
 
     # add entry to monitor table
-    elog = DBLog.create_from_json(
-        user_id=event.request.local_userid,
-        assembly_id=event.request.assembly.id,
-        stage_id=event.stage.id,
-        action=MONITOR_ACTION_UNALERT_STAGE,
-        date_created=arrow.utcnow())
-    event.request.dbsession.add(elog)
+    # elog = DBLog.create_from_json(
+    #     user_id=event.request.local_userid,
+    #     assembly_id=event.request.assembly.id,
+    #     stage_id=event.stage.id,
+    #     action=MONITOR_ACTION_UNALERT_STAGE,
+    #     date_created=arrow.utcnow())
+    # event.request.dbsession.add(elog)
 
 
 @subscriber(EventStageFocusContent)

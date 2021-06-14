@@ -127,6 +127,8 @@ class DBAssembly(BaseDefaultObject, AssemblyPluginInterface, Base):
     image = Column(Unicode(100))  # public
     info = Column(UnicodeText())  # full description of the meaning of the assembly.
     text_background = Column(UnicodeText(), default=u"")
+    agg_last_update = Column(ArrowType)  # assembly
+    agg_user_count = Column(Integer)
 
 
     def __init__(self, type_, title="", info="",
@@ -272,6 +274,8 @@ class DBAssembly(BaseDefaultObject, AssemblyPluginInterface, Base):
             'date_end': self.date_end,
             'is_active': self.is_active,
             'is_public': self.is_public,
+            'agg_last_update': self.agg_last_update,
+            'agg_user_count': self.agg_user_count,
             # 'status': self.status,
             # 'image': self.image,
             'acl': self.__roles__
