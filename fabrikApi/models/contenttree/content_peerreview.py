@@ -46,6 +46,9 @@ class DBContentPeerReview(Base):
         # Index("ix_contentprogression_contentid_userid_modifieddate", "content_id", "user_id", "date_modified"),
     )
 
+    # TODO: modelling: CREATE INDEX `idx_content_peerreview_disabled_rejected_approved`  ON `fabrikApi`.`content_peerreview` (disabled, rejected, approved, contenttree_id, content_id) COMMENT '' ALGORITHM DEFAULT LOCK DEFAULT	
+
+
     # primary key
     id = Column(Integer, primary_key=True)
 

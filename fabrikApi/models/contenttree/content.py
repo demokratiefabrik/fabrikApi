@@ -93,6 +93,9 @@ class DBContent(BaseDefaultObject, ContentPluginInterface, Base):
               "disabled", "date_modified")
     )
 
+    # TODO: CREATE INDEX `idx_content_deleted_disabled_id`  ON `PROD_fabrikApi`.`content` (deleted, disabled, id) COMMENT 'peerreview_updates' ALGORITHM DEFAULT LOCK DEFAULT
+
+
     # Pyramid Object authorization
     __roles__ = None
     __parent__ = None

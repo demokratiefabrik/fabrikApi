@@ -37,6 +37,9 @@ class DBNotification(Base):
         Index("uq_notification_created_userid", "date_created", "user_id"),
     )
 
+    # UPDATE QUERIES
+    # CREATE INDEX `idx_notification_user_id_date_created_date_last_interaction`  ON `PROD_fabrikApi`.`notification` (user_id, date_created, date_last_interaction) COMMENT '' ALGORITHM DEFAULT LOCK DEFAULT
+
     # primary
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer) # , ForeignKey('user.id')

@@ -135,6 +135,7 @@ class ContentTreeManager(object):
         if self.load_user_data:
             query = query.outerjoin(
                 DBContentProgression,
+                # TODO: isnt this funny, to do the where condition inside the outer join specification?
                 and_(
                     DBContent.id == DBContentProgression.content_id,
                     DBContentProgression.user_id == self.request.local_userid
@@ -157,8 +158,12 @@ class ContentTreeManager(object):
 
         # Load Usernames!
         creator_ids = {v.DBContent.user_created_id: True for k, v in enumerate(contents)}
-        usernames = self.request.dbsession.query(DBUser.id, DBUser).filter(DBUser.id.in_(creator_ids)).all()
+        if len(creator_ids) > 0:
+            usernames = self.request.dbsession.query(DBUser.id, DBUser).filter(DBUser.id.in_(creator_ids)).all()
+        else:
+            usernames = {}
         creator_usernames = {k: v for k, v in usernames}
+        
         
         # Prepare Object for Json Response
         for content in contents:

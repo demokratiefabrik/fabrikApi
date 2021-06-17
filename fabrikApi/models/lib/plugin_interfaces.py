@@ -128,7 +128,7 @@ class ContentTreePluginInterface(object):
 
     DEFAULT_CONTENT_TEXT_MAX_LENGTH = 3000
     CONTENT_TEXT_MAX_LENGTH_BY_TYPES = {
-        'COMMENT': 300,
+        'COMMENT': 650,
         'FOLDER': 300,
     }
 

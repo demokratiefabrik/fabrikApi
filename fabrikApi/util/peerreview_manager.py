@@ -130,9 +130,12 @@ class PeerreviewManager(object):
         if not not_in_json_format:
             # Load Usernames!
             creator_ids = {v.DBContentPeerReview.user_created_id: True for k, v in enumerate(peerreviews)}
-            usernames = self.request.dbsession.query(DBUser.id, DBUser).filter(DBUser.id.in_(creator_ids)).all()
+            if len(creator_ids) > 0:
+                usernames = self.request.dbsession.query(DBUser.id, DBUser).filter(DBUser.id.in_(creator_ids)).all()
+            else:
+                usernames = {}
             creator_usernames = {k: v for k, v in usernames}
-        
+
         # Prepare Object for Json Response
         for content in peerreviews:
             # PERMISSION and lineage Setup
