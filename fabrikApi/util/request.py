@@ -65,13 +65,17 @@ class MoxRequest(Request):
 
     @cache.CachedAttribute
     def has_administrate_permission(self):
-        # Administrator Manager
+        # Administrator
         return len(self.jwt_claims) and 'administrator' in self.jwt_claims.get("roles")
 
     def has_manage_permission(self, assemblyIdentifier):
-        # Administrator Manager
+        # Manager
         return len(self.jwt_claims) and 'manager@%s' % assemblyIdentifier in self.jwt_claims.get("roles")
         # effective_principals
+    
+    def has_delegate_permission(self, assemblyIdentifier):
+        # Delegate Manager
+        return len(self.jwt_claims) and 'delegate@%s' % assemblyIdentifier in self.jwt_claims.get("roles")
 
     def get_auth_roles(self, context):
         """ Get the acl roles of the curent user for the transmitted object"""

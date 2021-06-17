@@ -127,6 +127,10 @@ def event_raised_when_new_focused_content_is_received(event):
     # Update peerreview assignments....
     if not event.stage.custom_data or not event.stage.custom_data.get('RANDOM_FOCUS'):
         return None
+
+    # continue only for delegates
+    if not event.request.has_delegate_permission(event.request.assembly.identifier):
+        return None
    
     # Assign Open Peerreviews to the user...
     peerreview_manager = PeerreviewManager(event.request, contenttree=event.stage.contenttree)
@@ -182,11 +186,13 @@ def notified_after_a_stage_has_been_entered_for_the_first_time(event):
     # Update date of last session: if last session has been before today, => set alerted flag
     event.progression.number_of_day_sessions = 1
     event.progression.date_last_day_session = arrow.utcnow()
-    # Update date of last session:
-    event.progression.alerted = True
     # if event.progression.date_last_day_session:   
     # Reset focused content every day....
     event.progression.focused_content_id = None
+
+    # Update alert flag:
+    if event.request.has_delegate_permission(event.request.assembly.identifier):
+        event.progression.alerted = True
 
 
 @subscriber(EventStageVisit)
@@ -218,10 +224,7 @@ def notified_after_a_stage_has_been_reentered(event):
         return None
 
     logger.info("RESET STAGE %s" % event.stage.title)
-    # Update date of last session:
-    event.progression.alerted = True
-    # if event.progression.date_last_day_session:
-
+    # Update date of last session
     if event.progression.number_of_day_sessions is None:
         event.progression.number_of_day_sessions = 0    
     event.progression.number_of_day_sessions += 1
@@ -229,6 +232,10 @@ def notified_after_a_stage_has_been_reentered(event):
     
     # Reset focused content every day....
     event.progression.focused_content_id = None
+
+    # alerted flag (only for delegates):
+    if event.request.has_delegate_permission(event.request.assembly.identifier):
+        event.progression.alerted = True
 
 
 # CONTENT SUBSRIBERS

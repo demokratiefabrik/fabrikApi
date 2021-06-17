@@ -204,6 +204,8 @@ class DBAssembly(BaseDefaultObject, AssemblyPluginInterface, Base):
                 'modify', 'rating', 'saliencing', 'observe', 'public']),
             (Allow, 'expert@' + assembly_identifier, [
                 'modify', 'observe', 'public']),
+            (Allow, 'observer@' + assembly_identifier, [
+                'observe', 'public']),
             (Allow, Everyone, ['public']),
         ])
 
