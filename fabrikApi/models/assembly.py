@@ -191,7 +191,8 @@ class DBAssembly(BaseDefaultObject, AssemblyPluginInterface, Base):
                     (Allow, 'expert@' + assembly_identifier, ['add', 'append']),
                 ])
 
-            if self.MAX_DAILY_USER_PROPOSALS > self.__progression__.number_of_proposals_today:
+            if self.__progression__.get_max_todays_user_proposals() > self.__progression__.number_of_proposals_today \
+                    and self.MAX_OVERALL_USER_PROPOSALS > self.__progression__.number_of_proposals:
                 acl.extend([
                     (Allow, 'delegate@' + assembly_identifier, ['propose_add', 'propose_modify']),
                     (Allow, 'contributor@' + assembly_identifier,  ['propose_add', 'propose_modify']),
@@ -376,6 +377,7 @@ class DBAssemblyProgression(BaseProgressionObject, Base):
             # 'alerted': self.alerted,
             'number_of_day_sessions': self.number_of_day_sessions,
             'number_of_comments_today': self.number_of_comments_today,
+            'number_of_proposals': self.number_of_proposals,
             'number_of_proposals_today': self.number_of_proposals_today
         })
         return(response)
@@ -394,3 +396,10 @@ class DBAssemblyProgression(BaseProgressionObject, Base):
 
     def lock_user(self):
         self.locked = True
+
+    def get_max_todays_user_proposals(self):
+        if self.assembly.MAX_OVERALL_USER_PROPOSALS <= self.number_of_proposals:
+            return 0
+        if self.assembly.TROTTLE_THRESHOLD_FOR_OVERALL_USER_PROPOSALS <= self.number_of_proposals:
+            return 1        
+        return self.assembly.MAX_DAILY_USER_PROPOSALS

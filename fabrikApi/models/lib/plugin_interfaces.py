@@ -76,6 +76,10 @@ class AssemblyPluginInterface(object):
 
     MAX_DAILY_USER_COMMENTS = None
     MAX_DAILY_USER_PROPOSALS = None
+    MAX_OVERALL_USER_PROPOSALS = None
+
+    # When following overall threshold is reached, the daily limit is set to 1.
+    TROTTLE_THRESHOLD_FOR_OVERALL_USER_PROPOSALS = None
 
     ASSEMBLYTYPES = []
 

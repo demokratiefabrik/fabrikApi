@@ -42,12 +42,16 @@ def get_assembly(request):
         configuration = {
             'STAGE_TYPES': PLUGIN_MODULES['STAGE'],
             'MAX_DAILY_USER_COMMENTS': request.assembly.MAX_DAILY_USER_COMMENTS,
-            'MAX_DAILY_USER_PROPOSALS': request.assembly.MAX_DAILY_USER_PROPOSALS
+            'MAX_DAILY_USER_PROPOSALS': request.assembly.__progression__.get_max_todays_user_proposals(),
+            'MAX_OVERALL_USER_PROPOSALS': request.assembly.MAX_OVERALL_USER_PROPOSALS,
+            'TROTTLE_THRESHOLD_FOR_OVERALL_USER_PROPOSALS': request.assembly.TROTTLE_THRESHOLD_FOR_OVERALL_USER_PROPOSALS
         }
     else:
         configuration = {
             'MAX_DAILY_USER_COMMENTS': request.assembly.MAX_DAILY_USER_COMMENTS,
-            'MAX_DAILY_USER_PROPOSALS': request.assembly.MAX_DAILY_USER_PROPOSALS
+            'MAX_OVERALL_USER_PROPOSALS': request.assembly.MAX_OVERALL_USER_PROPOSALS,
+            'TROTTLE_THRESHOLD_FOR_OVERALL_USER_PROPOSALS': request.assembly.TROTTLE_THRESHOLD_FOR_OVERALL_USER_PROPOSALS,
+            'MAX_DAILY_USER_PROPOSALS': request.assembly.__progression__.get_max_todays_user_proposals()
         }
 
     return({'assembly': request.assembly,
