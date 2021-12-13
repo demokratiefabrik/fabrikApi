@@ -11,27 +11,27 @@ with open(os.path.join(here, 'CHANGES.txt')) as f:
 # 'mysqlclient', # mysql language
     
 requires = [
-    'pyramid==1.10',  # framework
+    'pyramid',  # framework
     'SQLAlchemy==1.3.24',  # DB access
     'pytest',  # gunicorn
     'webtest',  # gunicorn
-    'PyMySQL==1.0.2',  # gunicorn
+    'PyMySQL',  # gunicorn
     'pyramid_tm',  # transaction manager
     'transaction',
     'zope.sqlalchemy',  # zope session manager
-    'gunicorn==20.0.4',  # gunicorn
+    'gunicorn',  # gunicorn
     'webtest',  # gunicorn
-    'urllib3==1.26.4',  # gunicorn
+    'urllib3',  # gunicorn
     'get-docker-secret',
     'pyramid_jwt',  # auth. by jwt token
-    'cornice==5.1.0',  # Rest - API (Custom adapters (arrow) not working on 5.0.3 yet.)
+    'cornice',  # Rest - API (Custom adapters (arrow) not working on 5.0.3 yet.)
     'cryptography',  # for mysql 8.0
     'sqlalchemy_filters',
     'colander',  # JSON handling (required by cornice) TODO?
     'jsonschema',  # json data validation
     'python-dateutil',  # for formatting iso-formats to datetime (only necessary for python <3.7)
-    'sqlalchemy-utils==0.36.8',
-    'arrow==1.0.3'
+    'sqlalchemy-utils',
+    'arrow'
     ]
 # apt-get install build-essential libssl-dev libffi-dev python-dev
 tests_require = [
