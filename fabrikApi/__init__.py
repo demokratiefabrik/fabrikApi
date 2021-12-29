@@ -4,7 +4,7 @@ See README.md
 """
 
 __title__ = 'fabrikApi'
-__version__ = '0.1'
+__version__ = '0.2'
 __author__ = 'Dominik Wyss'
 __license__ = 'GNU'
 __copyright__ = 'Copyright 2020-2022 Dominik Wyss'

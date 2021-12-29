@@ -116,7 +116,7 @@ def setup_data(request):
 
     c12 = import_tree(
         request=request,
-        file="CIR_PROS_AND_CONS",
+        file="CIR",
         title="Wichtigste Pro- und Kontraargumente",
         info=("Wir brauchen hier Ihre Mithilfe! Was spricht für die Vorlage und was dagegen. "
              "Welches sind die wirklich relevanten Inhalte?"),
@@ -146,7 +146,7 @@ def setup_data(request):
 
     stage3 = DBStage(
         title="Die wichtigsten politischen Themen",
-        type_='CIR_PROS_AND_CONS',
+        type_='CIR',
         info="Nun geht es los. In diesem Abschnitt geht es darum, die wichtigsten Argumente für oder gegen die Vorlage zu sammeln.",
         assembly=assembly1,
         contenttree=c12)
@@ -154,7 +154,7 @@ def setup_data(request):
 
     stage5 = DBStage(
         title="Erste Resultate",
-        type_='CIR_PROS_AND_CONS_ANALYSIS',
+        type_='CIR_ANALYSIS',
         info="Hier stellen wir Ihnen erste, provisorische Resultate zusammen. Was ist den Teilnehmenden Stimmbürgern für die nächste Legislatur besonders wichtig?",
         assembly=assembly1,
         contenttree=c12)

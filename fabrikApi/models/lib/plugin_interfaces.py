@@ -343,8 +343,8 @@ class StagePluginInterface(object):
     # key: translation_code
     StageTypes = {}
     # "SURVEY": "SURVEY",
-    # "CIR_PROS_AND_CONS": "CIR_PROS_AND_CONS",
-    # "CIR_PROS_AND_CONS_ANALYSIS": "CIR_PROS_AND_CONS_ANALYSIS",
+    # "CIR": "CIR",
+    # "CIR_ANALYSIS": "CIR_ANALYSIS",
     # "VAA_QUESTIONS": "VAA_QUESTIONS",
     # "VAA_TOPICS": "VAA_TOPICS",
     # "VAA_CONCLUSION": "VAA_CONCLUSION",
