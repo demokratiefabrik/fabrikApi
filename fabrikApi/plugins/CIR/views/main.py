@@ -27,7 +27,7 @@ cirplot = Service(
     #     'Access-Control-Max-Age': '1728000',
     #     },
     # # content_disposition= 'File Transfer',
-    # cors_enabled=True,
+    # cors_enabled=False,
     # cors_origins="*",
     content_type='image/svg+xml',
     description='Show Assembly Plot.', 
