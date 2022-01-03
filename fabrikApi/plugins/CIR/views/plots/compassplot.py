@@ -266,8 +266,11 @@ class Compass:
         # %%
         # SVG
 
+
         # Should fasten the svg . not sure if this works
         mplstyle.use('fast')
+        # plt.rcParams['font.family'] = 'sans-serif'
+        plt.rcParams['figure.constrained_layout.use'] = True
 
         # Figure DEFAULT
         fig = plt.figure(frameon=False)
@@ -277,14 +280,15 @@ class Compass:
         fig.set_figheight(10)   
 
         # removes padding between figure and subplots. (makes also spaces larger between dots)
-        fig.set_tight_layout(True)
+        # fig.set_tight_layout(True)
 
         # canvas
         ax = fig.add_subplot(projection='polar')
-        # ax.set_aspect(1) # no effect, i believe
+        ax.set_aspect(1) # no effect, i believe
         ax.set_xlim(0, math.radians(self.config['chartAngle']))
         ax.set_ylim(self.config['innery']-0.5, self.config['outery']+0.5)
         ax.set_rorigin(-self.config['innery'])
+
 
         # x axis ticks
         x = [0, np.pi/2, np.pi]
@@ -301,15 +305,19 @@ class Compass:
         alpha = None # remove alpha value (e.g. 'none' or 0.75)
         edgecolors = None # remove edge patches...
         ax.scatter(xpos, ypos, gid='scatgrid', s=dotSize, alpha=alpha, edgecolors=edgecolors)
+        ax.set_axisbelow(True) # put grid behind dots
+        # ax.grid(color='lightgrey', linestyle='dashed') # overwrites local css
 
+        # supplement shades
+        # ax.ayhline(y=10)
 
+        # Convert to svg file stream
         f = BytesIO()
         fig.savefig(f, format='svg', transparent=True)
+        root = ET.fromstring(f.getvalue()) # Convert to XML Element Templat
+        f.truncate(0)  # empty stream again
 
         # XML POST-MODIFICATIONS
-        root = ET.fromstring(f.getvalue())
-        f.truncate(0)  # empty again
-        
         # set 100% size
         root.attrib['width'] = '100%'
         root.attrib['height'] = '100%'
@@ -331,11 +339,11 @@ class Compass:
         content = ET.tostring(root,  xml_declaration=True)
         return content
 
+        # TODO: 
         # add script    
         # script = getSvgScript()
         # Insert the script at the top of the file and save it.
         # root.insert(0, ET.XML(script))
-
         # # tree.set('onload', 'init(evt)')
         # # tooltip = xmlid['mytooltip_{:03d}'.format(index)]
         # onechild.set('id', 'dot1')
@@ -348,17 +356,36 @@ class Compass:
         start = ax.viewLim.min[1]
         posMin = ax.transData.transform((0, start))
         posMax = ax.transData.transform((0, start+1))
+        ax.transData.get_affine().transform((0, start))
+        
+        # where is center-point
+        # centerMax = ax.figure.transFigure.transform((0, start))
+        # centerMin = ax.figure.transFigure.transform((0, start))
+        # centerMax = ax.figure.transFigure.transform((0, start+1))
+
+        # centerMin = ax.figure.dpi_scale_trans.inverted().transform((0, start))
+        # centerMax = ax.figure.dpi_scale_trans.transform((0, start+1))
+
+        # centerX = (centerMax[0] - centerMin[0]) / 2
+        ax.transData.transform([(0, 1)]) - ax.transData.transform((0, 0))
 
         # pythagoras for distance in pixel
         a = posMax[0] - posMin[0]
         b = posMax[1] - posMin[1]
         c = math.sqrt(a**2+b**2)
 
+        # ax.figure.dpi
+
+        # print("centerX %s" % centerX)
+
+
         # convert between pixel and points (scatter requires point marker size)
         # assuming default ppi value of 72
-        points = c / 0.72
+        UNEXPLAINED_FACTOR = 1.1 
+        points = c / 0.72 * UNEXPLAINED_FACTOR
 
-        # return area
-        return (points / 2) ** 2
+
+        # return area: r2*
+        return ((points/2) ** 2)
 
 

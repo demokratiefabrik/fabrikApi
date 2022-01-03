@@ -44,7 +44,7 @@ def cir(request):
     if not outery:
         outery = 27
 
-    config={"innery": 2, "outery": int(outery), "forceJustification": True}
+    config={"innery": 5, "outery": int(outery), "forceJustification": True}
 
 
     compass = Compass(config)
