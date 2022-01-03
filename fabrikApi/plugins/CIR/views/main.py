@@ -1,14 +1,14 @@
 """ Assemblies List View. """
 
 import logging
-from datetime import datetime
 
 from cornice.service import Service
+import numpy as np
 
 from fabrikApi.models.assembly import DBAssembly
 from fabrikApi.models.mixins import arrow
 # from fabrikApi.plugins.CIR.views.plots.beeplot import beeplot
-from fabrikApi.plugins.CIR.views.plots.compassplot import compassplot
+from fabrikApi.plugins.CIR.views.plots.compassplot import Compass
 # from fabrikApi.util.cors import CORS_LOCATION, CORS_MAX_AGE
 
 logger = logging.getLogger(__name__)
@@ -40,16 +40,24 @@ def cir(request):
     Return current cirplot
     """
 
-    # request.response.headers.update({
-    #     'Access-Control-Allow-Origin': '*',
-    #     'Access-Control-Allow-Methods': 'POST,GET,DELETE,PUT,OPTIONS',
-    #     'Access-Control-Allow-Headers': 'Origin, Content-Type, Accept, Authorization',
-    #     'Access-Control-Allow-Credentials': 'true',
-    #     'Access-Control-Max-Age': '1728000',
-    #     })
-    # return beeplot()
-    return compassplot()
+    outery = request.GET.get('outery') 
+    if not outery:
+        outery = 27
 
-#     return """<svg width="100" height="100">
-#   <circle cx="50" cy="50" r="40" stroke="green" stroke-width="4" fill="yellow" />
-# </svg>"""
+    config={"innery": 2, "outery": int(outery), "forceJustification": True}
+
+
+    compass = Compass(config)
+
+    # Populate the plot
+    try:
+        # Capacity: uniform: 500
+        for i in np.random.rand(500):
+            # print(i, "ll")
+            compass.add(round(i*100))
+    except Exception as e:
+        print("Plot is full: Cannot place more dots meaningfully. The rest is skipped. (Make sure, the data is in random order.)")
+        pass
+
+    return compass.plot()
+

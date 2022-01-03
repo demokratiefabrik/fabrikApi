@@ -3,23 +3,11 @@
 """
 Polar projection, but in a rectangular box.
 """
-from matplotlib.patches import Patch
-import mpld3
-import numpy as np
-from mpld3 import plugins
-
 import matplotlib.pyplot as plt
-from matplotlib.projections import PolarAxes
 import math
 from io import BytesIO
 import matplotlib.style as mplstyle
-# from .compass import Compass
-# from fabrikApi.plugins.CIR.views.plots.compass import Compass
-
-# import lxml.etree.ElementTree as ET
 import lxml.etree as ET
-
-
 import numpy as np
 import math
 
@@ -36,85 +24,155 @@ class Dot:
     isUpperBoundary = False
     isLowerBoundary = False
     index = None
+    config = None
 
-    def __init__(self, value, x, y, angle, angleWidth):
+    def __init__(self, value, x, y, angle, angleWidth, config):
         self.value = value
         self.x = x
         self.y = y
         self.angle = angle
         self.angleWidth = angleWidth
+        self.config = config
 
-    def overlapping(self, angle):
-        """ does current slot overlapps with given angle..."""
+    def overlapping(self, angle, tara=False):
+        """ does current slot overlapps with given angle...
+        # if tara is true: also check if angle overlapps with gap besides dot.
+        """
         # TODO <=
-        # correct also for row intent at boundary dots (with no direct overlapp)
+        # corrected also for row intent at boundary dots (with no direct overlapp)
         upperlimit = angle <= self.angle+self.angleWidth/2 or self.isUpperBoundary
         lowerlimit = angle > self.angle-self.angleWidth/2 or self.isLowerBoundary
         return (lowerlimit and upperlimit)
 
     def overlappingWithTolerance(self, angle):
         """ does current slot overlapps with given angle...
-        Tolerance: 40 degree """
-        # TODO
-        toleranceAngle = 5
-        return (angle > self.angle-toleranceAngle and angle <= self.angle+toleranceAngle)
+        toleranceAngle """
+        return (angle > self.angle-self.config['toleranceAngle'] and angle <= self.angle+self.config['toleranceAngle'])
 
 
 
 class Row:
     """ Where should the dots be places on each row? """
+
     y = None  # value on 1:100 scale
+
     innerMargin = None   # angle (position) number (on X-axis)
     angleWidth = None
-    forceJustification = None
     chartAngle = None
+    dotList = None
+    config = None
 
-    def __init__(self, y, forceJustification, chartAngle):
-        self.forceJustification = forceJustification
+    # calculated
+    nofRowSlots = None
+    slotAngleWidth = None # angleWidth of the dots on this row
+    gapAngleWidth = None # angleWidth of the gap between the dots
+
+    def __init__(self, y, config):
+        self.config = config
         self.y = y
-        self.chartAngle = chartAngle
+        self.slotNumbers()
+
+
+    def slotNumbers(self):
+        """ how many dots can be aligned on this y (radius)"""
+        yhalf = self.y + (self.config['innery']) # add space in the inner circle
+        rowSlotsUnrounded = yhalf*2 * np.pi / 2
+        self.nofRowSlots = math.floor(rowSlotsUnrounded)
+        gapSum = rowSlotsUnrounded - self.nofRowSlots
+
+        # What is the angle spread for a dot (depending on y). (how big is the piece of cake)
+
+        # calculate gap and slot angles
+        if not self.config['forceJustification']:
+            # dont leave space between the dots
+            self.slotAngleWidth = self.config['chartAngle'] / self.nofRowSlots
+            self.gapAngleWidth = 0
+
+        if self.config['forceJustification']:
+            # leave space between the dots
+            nofRowGaps = self.nofRowSlots - 1
+            slotGap = gapSum /  self.nofRowSlots        
+            # calculated by: gapAngleWidth = slotAngleWidth * slotGap
+            self.slotAngleWidth = self.config['chartAngle'] / (self.nofRowSlots + nofRowGaps*slotGap)
+            self.gapAngleWidth = self.slotAngleWidth*slotGap
+
+        # Check: gapAngleWidth * nofRowGaps + slotAngleWidth * nofRowSlots
+
+
+    def getXByAngle(self, angle):
+        return 1/180*angle * self.config['xAxisMax']
+
+    def getDotList(self):
+        self.dotList = []
+
+        if self.config['forceJustification']:
+            start = self.slotAngleWidth/2
+
+        if not self.config['forceJustification']:
+            # Center dot-row on the x-axis
+            maxAlignGap = ((self.config['chartAngle']) - (self.slotAngleWidth*(self.nofRowSlots)))
+            alignGap = maxAlignGap * (self.y % 2)  # maxAlignGap*np.random.random()
+            start = self.slotAngleWidth/2 + alignGap
+
+        slotList = list(
+            np.arange(
+                start=start,
+                stop=self.config['chartAngle'],
+                step=self.slotAngleWidth+self.gapAngleWidth))[:self.nofRowSlots]
+        dotList = list(map(lambda angle: Dot(
+            value=None, 
+            x=self.getXByAngle(angle), 
+            y=self.y, 
+            angle=angle,
+            angleWidth=self.slotAngleWidth, 
+            config=self.config), slotList))
+        # dotList = list(map(lambda angle: angle, slotAngleWidth), slotList))
+        # self.getXByAngle(slotList[1]) - self.getXByAngle(slotList[0])
+        dotList[0].isLowerBoundary = True
+        dotList[-1].isUpperBoundary = True
+        return dotList
 
 
 
 class Compass:
-
-    innery = 5 # lowest y-value shown
-    outery = 20 # highest y-value shown
-    chartAngle = 180 # angle of the polar chart (180 = half-circle) 
-    forceJustification = False # force left/rigth justifications of dots on each y-line
-    
-
-    # helper
-    xAxisMax = 100  # scale from 0 to 100
-    ceilingy = 0
-    slotsByY = {}  # free slots...
-    dots = []
+    config = None
+    ceilingy = None
+    freeSlotsByY = None
+    dots = None
 
     def __init__(self, config={}):
 
-        if config:
-            if 'innery' in config:
-                assert config['innery'] > 0
-                self.innery = config['innery']
-            if 'outery' in config:
-                assert config['outery'] > self.innery
-                self.outery = config['outery']
-            if 'chartAngle' in config:
-                assert config['chartAngle'] > 0
-                self.chartAngle = config['chartAngle']
-            if 'forceJustification' in config:
-                assert config['forceJustification'] in [True, False]
-                self.forceJustification = config['forceJustification']
+        self.dots = []
+        self.freeSlotsByY = {}  # free slots...
+        self.ceilingy = 0
 
-                
+        self.config = {
+            "innery" : 5, # lowest y-value shown
+            "outery" : 20, # highest y-value shown
+            "chartAngle" : 180, # angle of the polar chart (180 = half-circle) 
+            "forceJustification": False, # force left/rigth justifications of dots on each y-line
+            "xAxisMax" : 100,  # scale from 0 to 100
+            "toleranceAngle" : 10
+        }
+
+        
+        # update runtime config
+        self.config.update(config)
+
+        # assert configuration
+        assert self.config['innery'] > 0
+        assert self.config['outery'] > self.config['innery']
+        assert self.config['chartAngle'] > 0
+        assert self.config['forceJustification'] in [True, False]
+        assert self.config['toleranceAngle'] <= 180
 
         # generate angles for baseline (=> innery)
-        self.generateRowSlots(self.innery)
+        self.generateRowSlots(self.config['innery'])
 
     def generateRowSlots(self, y):
         """generate empty slots for new y row"""
 
-        if y > self.outery:
+        if y > self.config['outery']:
             # maximal y value reached...
             return None
 
@@ -123,76 +181,33 @@ class Compass:
             return None
 
         assert y > self.ceilingy, (y, self.ceilingy)
-        assert y >= self.innery
+        assert y >= self.config['innery']
 
 
-        row = Row(y, self.forceJustification, self.chartAngle)
-
-
-        rowSlotsUnrounded = self.rowSlots(y)
-        slotAngleWidth = self.slotAngleWidth(rowSlotsUnrounded)
-        # rowSlotsInt = math.ceil(rowSlotsUnrounded)
-        # substact the boundary gap
-        rowSlotsInt = math.floor(rowSlotsUnrounded)
-
-        # TODO: center angles between 0 and 180
-        maxAlignGap = ((self.chartAngle) - (slotAngleWidth*(rowSlotsInt)))
-        alignGap = maxAlignGap * (y % 2)  # maxAlignGap*np.random.random()
-        #  + slotAngleWidth/2
-        # alignGap,
-        # slotAngleWidth
-        slotList = list(np.arange(start=slotAngleWidth/2+alignGap,
-                        stop=self.chartAngle, step=slotAngleWidth))[:rowSlotsInt+1]
-        dotList = list(map(lambda angle: Dot(value=None, x=self.getXByAngle(
-            angle), y=y, angle=angle, angleWidth=slotAngleWidth), slotList))
-        # alue, x, y, angle, angleWidth, index
-        # debug
-        # dotList = list(map(lambda angle: angle, slotAngleWidth), slotList))
-
-        # self.getXByAngle(slotList[1]) - self.getXByAngle(slotList[0])
-#
-        # self.slots.extend(dotList)
-        dotList[0].isLowerBoundary = True
-        dotList[-1].isUpperBoundary = True
-        self.slotsByY[y] = dotList
+        row = Row(y, self.config)
+        dotList = row.getDotList()
+        self.freeSlotsByY[y] = dotList
         self.ceilingy = y
 
-    def getXByAngle(self, angle):
-        return 1/180*angle * self.xAxisMax
-
     def getAngleByX(self, x):
-        return 1/self.xAxisMax*x * self.chartAngle
+        return 1/self.config['xAxisMax']*x * self.config['chartAngle']
 
-    # def getPixelByAngle(self, y, pixel):
-    #     return
-
-    # def slotPixelWidth(self, y):
-    #     """ What is the angle spread for a dot on this y. (how big is the piece of cake)"""
-    #     units = int(math.floor(float(y**2)* np.pi / 2))
-    #     return self.xAxisMax / units
-
-    def slotAngleWidth(self, rowSlots):
-        """ What is the angle spread for a dot (depending on y). (how big is the piece of cake)"""
-        return self.chartAngle / rowSlots
-
-    def rowSlots(self, y):
-        """ how many dots can be aligned on this y (radius)"""
-        yhalf = y + (self.innery) # add space in the inner circle
-        return yhalf*2 * np.pi / 2
 
     def getFreeSlot(self, angle, value):
         """ get lowest free slot (on this position). """
 
         # print("getFreeSlot %s %s" % (value, angle))
 
-        for y in range(self.innery, self.ceilingy+1):
-            if y not in self.slotsByY.keys():
+        for y in range(self.config['innery'], self.ceilingy+1):
+            if y not in self.freeSlotsByY.keys():
                 print("SLOT NOT READY %s %s %s" % (value, angle, y))
                 break
-            for dot in self.slotsByY[y]:
-                if dot.overlapping(angle):
-                    self.applySlot(dot, value)
-                    return dot
+            for freeslot in self.freeSlotsByY[y]:
+                # only apply perfect matching slots
+                # TODO: make sure, that there is not a close empty slot on lower line...
+                if freeslot.overlapping(angle):
+                    self.applySlot(freeslot, value)
+                    return freeslot
 
         # No slot found:-(
         # Tolerance:
@@ -200,36 +215,38 @@ class Compass:
         # - no overlapping with other left over...
         # - minimal angle gap
         candidates = []
-        print("no slot found: take nearest slot")
-        for y in range(self.innery, self.ceilingy+1):
-            if not y in self.slotsByY:
-                break
-            for dot in self.slotsByY[y]:
-                if not dot.overlappingWithTolerance(angle):
+        # print("no slot found: take nearest slot")
+        for y in range(self.config['innery'], self.ceilingy+1):
+            assert y in self.freeSlotsByY
+            # if not y in self.freeSlotsByY:
+            #     break
+            for freeSlot in self.freeSlotsByY[y]:
+                if not freeSlot.overlappingWithTolerance(angle):
                     # too far away from ideal point
                     continue
 
-                # slot cannot be built on a free slots (ie.e. slots already inside the candidates list.)
-                if not any(candidate.y < dot.y and candidate.overlapping(dot.angle) for candidate in candidates):
-                    candidates.append(dot)
+                # slot cannot be built on a free slots (ie.e. free slot is based on another free slot already inside the candidates list.)
+                if not any(candidate.y < freeSlot.y and candidate.overlapping(freeSlot.angle) for candidate in candidates):
+                    candidates.append(freeSlot)
 
-                # dot = min(candidates, key=lambda x: x.angle)
-                # if next(filter(lambda candidate: not candidates.overlapping(dot.angle), candidates)):
-                #     candidates.append(dot)
-
-        # order candidates by angle
+        # find candidate with lowest angle discrepancy.
         if len(candidates) > 0:
+            # discriminate higher-y dots over lower y => (dot.y/dot.angle)
+            # discriminate higher x-axis discrepancy over exact matches => abs(angle - dot.angle)
+            # TODO: test second component: dot.angleWidth
+            # - dot.angleWidth
             nearDot = min(candidates, key=lambda dot: abs(angle - dot.angle))
-            self.applySlot(nearDot, value)
+            self.applySlot(nearDot, value, exactPlacement=False)
             return nearDot
 
         raise Exception("can not allocate all values (Value: %s)" % value)
 
-    def applySlot(self, slot, value):
+    def applySlot(self, slot, value, exactPlacement=True):
         slot.value = value
+        slot.exactPlacement = exactPlacement
         slot.index = len(self.dots)
         self.dots.append(slot)
-        self.slotsByY[slot.y].remove(slot)
+        self.freeSlotsByY[slot.y].remove(slot)
 
         # create slots for row above..
         self.generateRowSlots(slot.y + 1)
@@ -239,137 +256,109 @@ class Compass:
         # print(".", value)
         assert round(value) in range(0, 101), value
 
-        y = self.innery
+        y = self.config['innery']
         angle = self.getAngleByX(value)
         return self.getFreeSlot(angle, value)
 
 
-# compass = Compass()
 
-# add a dot into the middle
-# compass.add(50)
-# compass.add(40)
-# compass.add(40)
-# compass.add(40)
-# compass.dots
+    def plot(self):
+        # %%
+        # SVG
 
+        # Should fasten the svg . not sure if this works
+        mplstyle.use('fast')
 
-# pip install matplotlib seaborn
+        # Figure DEFAULT
+        fig = plt.figure(frameon=False)
 
-def compassplot():
+        # why? earlier 9 and 7
+        fig.set_figwidth(10)
+        fig.set_figheight(10)   
 
-    compass = Compass(config={"innery": 5, "outery": 30, "forceJustification": True})
+        # removes padding between figure and subplots. (makes also spaces larger between dots)
+        fig.set_tight_layout(True)
 
-    # add a dot into the middle
-    try:
-        compass.add(50)
-        compass.add(40)
-        compass.add(40)
-        compass.add(40)
-        # Capacity: uniform: 500
-        for i in np.random.rand(500):
-            # print(i, "ll")
-            compass.add(round(i*100))
+        # canvas
+        ax = fig.add_subplot(projection='polar')
+        # ax.set_aspect(1) # no effect, i believe
+        ax.set_xlim(0, math.radians(self.config['chartAngle']))
+        ax.set_ylim(self.config['innery']-0.5, self.config['outery']+0.5)
+        ax.set_rorigin(-self.config['innery'])
 
-    except Exception as e:
-        print("Plot is full: Cannot place more dots meaningfully. The rest is skipped. (Make sure, the data is in random order.)")
-        pass
+        # x axis ticks
+        x = [0, np.pi/2, np.pi]
+        labels = ['Zustimmung', 'Teils/Teils', 'Ablehnen']
+        plt.xticks(x, labels)
 
-    # %%
-    # SVG
+        # markers
+        # SET DEFAULT VALUE: rcParams['lines.markersize'] ** 2
+        dotSize = self._matplotlibMarkerSize(ax)
+        xpos = list(map(lambda dot: math.radians(dot.angle), self.dots))
+        ypos = list(map(lambda dot: dot.y, self.dots))
 
-    # Should fasten the svg . not sure if this works
-    mplstyle.use('fast')
-
-    # Figure
-    fig = plt.figure(frameon=False)
-    fig.set_figwidth(9)
-    fig.set_figheight(7)
-
-    
-    # fig.set_tight_layout(True)
-    
-    # canvas
-    ax = fig.add_subplot(projection='polar')
-    # size and axis length
-    ax.set_aspect(1)
-    ax.set_xlim(0, math.radians(compass.chartAngle))
-    ax.set_ylim(compass.innery-0.5, compass.outery+0.5)
-    # Reset origin
-    ax.set_rorigin(-compass.innery)
-
-    # AXIS
-    # Remove grid lines
-    # ax.grid(False)
-    # ax.axis('off') # hide frame?
-    # ax.get_yaxis().set_visible(False)
-
-    # x axis ticks
-    x = [0, np.pi/2, np.pi]
-    labels = ['Zustimmung', 'Teils/Teils', 'Ablehnen']
-    plt.xticks(x, labels)
-
-    # Dots (radius?)
-    dotSize = fig.dpi / 5
-    # , 
-    # Compute areas and colors
-    xpos = list(map(lambda dot: math.radians(dot.angle), compass.dots))
-    ypos = list(map(lambda dot: dot.y, compass.dots))
-    # , c=colors cmap='hsv',
-    ax.scatter(xpos, ypos, gid='scatgrid',
-                         s=dotSize, alpha=0.75)
-
-    
-    # Create patches to which tooltips will be assigned.
-    # rect1 = plt.Rectangle((10, -20), 10, 5, fc='blue')
-    # rect2 = plt.Rectangle((-20, 15), 10, 5, fc='green')
-    # shapes = [rect1, rect2]
-    # labels = ['This is a blue rectangle.', 'This is a green rectangle']
-
-    # for i, (item, label) in enumerate(zip(shapes, labels)):
-    #     patch = ax.add_patch(item)
-    #     annotate = ax.annotate(labels[i], xy=item.get_xy(), xytext=(0, 0),
-    #                         textcoords='offset points', color='w', ha='center',
-    #                         fontsize=8, bbox=dict(boxstyle='round, pad=.5',
-    #                                                 fc=(.1, .1, .1, .92),
-    #                                                 ec=(1., 1., 1.), lw=1,
-    #                                                 zorder=1))
-
-    #     ax.add_patch(patch)
-    #     patch.set_gid('mypatch_{:03d}'.format(i))
-    #     annotate.set_gid('mytooltip_{:03d}'.format(i))
-    f = BytesIO()
-    fig.savefig(f, format='svg', transparent=True)
-
-    # XML MODIFICATIONS
-    # Add dot ids
-    root = ET.fromstring(f.getvalue())
-    # set 100% size
-    root.attrib['width'] = '100%'
-    root.attrib['height'] = '100%'
-
-    # root.xpath('//*')
-    # TODO: do more efficient xpath...
-    scatgrid = root.find('.//*[@id="scatgrid"]')
-    nodes = scatgrid.findall('.//*[@clip-path]/*')
-    for i in range(len(nodes)):
-        node = nodes[i]
-        node.attrib['id'] = "dot%s" % i
-        # onmouseoverdot
-        node.attrib['onmouseover'] = "dotclick(this, %s);" % i
-
-    # add script    
-    # script = getSvgScript()
-    # Insert the script at the top of the file and save it.
-    # root.insert(0, ET.XML(script))
-
-    # # tree.set('onload', 'init(evt)')
-    # # tooltip = xmlid['mytooltip_{:03d}'.format(index)]
-    # onechild.set('id', 'dot1')
-    content = ET.tostring(root,  xml_declaration=True)
-    # content = f.getvalue()
-    # f.truncate(0)  # empty again
-    return content
+        # , c=colors cmap='hsv',
+        alpha = None # remove alpha value (e.g. 'none' or 0.75)
+        edgecolors = None # remove edge patches...
+        ax.scatter(xpos, ypos, gid='scatgrid', s=dotSize, alpha=alpha, edgecolors=edgecolors)
 
 
-compassplot()
+        f = BytesIO()
+        fig.savefig(f, format='svg', transparent=True)
+
+        # XML POST-MODIFICATIONS
+        root = ET.fromstring(f.getvalue())
+        f.truncate(0)  # empty again
+        
+        # set 100% size
+        root.attrib['width'] = '100%'
+        root.attrib['height'] = '100%'
+
+        # Add ids to dot-nodes
+        # TODO: do more efficient xpath...
+        scatgrid = root.find('.//*[@id="scatgrid"]')
+        nodes = scatgrid.findall('.//*[@clip-path]/*')
+        for i in range(len(nodes)):
+            node = nodes[i]
+            node.attrib['id'] = "dot%s" % i
+            # onmouseoverdot
+            node.attrib['onclick'] = "dotclick(this, %s);" % i
+            # node.attrib['cursor'] = "pointer"
+            node.attrib['pointer-events'] = "all"
+            # ="all"
+        
+        # export XML
+        content = ET.tostring(root,  xml_declaration=True)
+        return content
+
+        # add script    
+        # script = getSvgScript()
+        # Insert the script at the top of the file and save it.
+        # root.insert(0, ET.XML(script))
+
+        # # tree.set('onload', 'init(evt)')
+        # # tooltip = xmlid['mytooltip_{:03d}'.format(index)]
+        # onechild.set('id', 'dot1')
+        # content = f.getvalue()
+
+
+    # PLOTTER DEFS
+    def _matplotlibMarkerSize(self, ax):
+
+        start = ax.viewLim.min[1]
+        posMin = ax.transData.transform((0, start))
+        posMax = ax.transData.transform((0, start+1))
+
+        # pythagoras for distance in pixel
+        a = posMax[0] - posMin[0]
+        b = posMax[1] - posMin[1]
+        c = math.sqrt(a**2+b**2)
+
+        # convert between pixel and points (scatter requires point marker size)
+        # assuming default ppi value of 72
+        points = c / 0.72
+
+        # return area
+        return (points / 2) ** 2
+
+
