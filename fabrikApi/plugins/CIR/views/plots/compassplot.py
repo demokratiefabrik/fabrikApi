@@ -4,9 +4,11 @@
 Polar projection, but in a rectangular box.
 """
 import matplotlib.pyplot as plt
+# import figaspect from matplotlib.figure
 import math
-from io import BytesIO
+from io import BytesIO, StringIO
 import matplotlib.style as mplstyle
+import matplotlib.textpath as textpath
 import lxml.etree as ET
 import numpy as np
 import math
@@ -139,7 +141,7 @@ class Compass:
     ceilingy = None
     freeSlotsByY = None
     dots = None
-
+    
     def __init__(self, config={}):
 
         self.dots = []
@@ -147,6 +149,7 @@ class Compass:
         self.ceilingy = 0
 
         self.config = {
+            "markerSizeFactor" : 1, # factor to scale the marker. 100 = 1 scale point 
             "innery" : 5, # lowest y-value shown
             "outery" : 20, # highest y-value shown
             "chartAngle" : 180, # angle of the polar chart (180 = half-circle) 
@@ -267,61 +270,102 @@ class Compass:
         # SVG
 
 
-        # Should fasten the svg . not sure if this works
-        mplstyle.use('fast')
-        # plt.rcParams['font.family'] = 'sans-serif'
-        plt.rcParams['figure.constrained_layout.use'] = True
-
         # Figure DEFAULT
-        fig = plt.figure(frameon=False)
+        # Should fasten the svg . not sure if this works
+        # mplstyle.use('fast')
+        plt.rcParams['font.family'] = 'Roboto'
+        plt.rcParams['font.weight'] = 'light'
+        plt.rcParams['svg.fonttype'] = 'none' # font installed on client
+       
+        fig = plt.figure(frameon=False, dpi=800)
+        #  dpi=800,
 
-        # why? earlier 9 and 7
-        fig.set_figwidth(10)
-        fig.set_figheight(10)   
 
-        # removes padding between figure and subplots. (makes also spaces larger between dots)
-        # fig.set_tight_layout(True)
-
-        # canvas
+        
+        # polar subplot
         ax = fig.add_subplot(projection='polar')
-        ax.set_aspect(1) # no effect, i believe
-        ax.set_xlim(0, math.radians(self.config['chartAngle']))
+        ax.spines['polar'].set_visible(False)
+        ax.set_xlim(math.radians(self.config['chartAngle']), 0)
         ax.set_ylim(self.config['innery']-0.5, self.config['outery']+0.5)
         ax.set_rorigin(-self.config['innery'])
+        ax.set_aspect(1)
+        ax.set_anchor('N')
+        ax.set_axisbelow(True) # put grid behind dots
+        plt.xticks([], [])
+        ax.axes.yaxis.set_ticklabels([])
 
+
+        # Adjust Figure Dimensions...
+        ext = ax.get_window_extent()
+        fig.set_figwidth(ext.width/fig.dpi)
+        # fig.set_figheight(ext.height/fig.dpi)   # 7.199999999999999*
+        # fig.set_size_inches(ext.width/fig.dpi, ext.height/fig.dpi)
+
+
+        # ax.axis('off')
 
         # x axis ticks
-        x = [0, np.pi/2, np.pi]
-        labels = ['Zustimmung', 'Teils/Teils', 'Ablehnen']
-        plt.xticks(x, labels)
+        # x = [0, np.pi/2, np.pi]
+        # labels = ['Zustimmung', 'Teils/Teils', 'Ablehnen']
+        # plt.set_
+        # plt.tight_layout()
 
+        sector = math.radians(self.config['chartAngle']) / 3
+        style = {"rotation_mode": 'anchor', "transform_rotates_text": True, "ha": 'left', "rotation": 180, "size": 8}
+
+        # 180/2378*pixelPerPi= X            
+        self.curvedText(ax, radianX=sector*0.5, y=self.config['outery']+1, text="Kontra", style=style, config=self.config)
+        self.curvedText(ax, radianX=sector*1.5, y=self.config['outery']+1, text="Unentschieden", style=style, config=self.config)
+        self.curvedText(ax, radianX=sector*2.5, y=self.config['outery']+1, text="Pro", style=style, config=self.config)
+
+
+        # BACKGROUND
+        ax.axvspan(0, np.pi/3*1, facecolor='g', alpha=0.05)
+        ax.axvspan(np.pi/3*1, np.pi/3*2, facecolor='b', alpha=0.05)
+        ax.axvspan(np.pi/3*2, np.pi/3*3, facecolor='r', alpha=0.05)
+        # ax.axhline(y=2000, linewidth=4, color='r')
+        
+        
+        
         # markers
-        # SET DEFAULT VALUE: rcParams['lines.markersize'] ** 2
         dotSize = self._matplotlibMarkerSize(ax)
         xpos = list(map(lambda dot: math.radians(dot.angle), self.dots))
         ypos = list(map(lambda dot: dot.y, self.dots))
-
-        # , c=colors cmap='hsv',
-        alpha = None # remove alpha value (e.g. 'none' or 0.75)
-        edgecolors = None # remove edge patches...
-        ax.scatter(xpos, ypos, gid='scatgrid', s=dotSize, alpha=alpha, edgecolors=edgecolors)
-        ax.set_axisbelow(True) # put grid behind dots
+        # edgecolors = None # remove edge patches... , edgecolors=edgecolors
+        alpha = 0.75 # remove alpha value (e.g. 'none' or 0.75)
+        ax.scatter(xpos, ypos, gid='scatgrid', s=dotSize, alpha=alpha)
         # ax.grid(color='lightgrey', linestyle='dashed') # overwrites local css
-
         # supplement shades
-        # ax.ayhline(y=10)
+        
+
+        
+        # CANVAS
+        
+        # plotwidth = ax.get_window_extent()
+        # ax.set_fill("red")
+        # plt.axis('tight')
+        # plt.box(on=False) # remove frame border
+        # plt.box(False)
+        # use full canvas
+
+
+        # ax.set_axis_off()
 
         # Convert to svg file stream
+        plt.gca().set_position([0, 0, 1, 1])
+
         f = BytesIO()
-        fig.savefig(f, format='svg', transparent=True)
+        # f = StringIO
+        # , transparent=True
+        fig.savefig(f, format='svg')
         root = ET.fromstring(f.getvalue()) # Convert to XML Element Templat
         f.truncate(0)  # empty stream again
 
         # XML POST-MODIFICATIONS
         # set 100% size
         root.attrib['width'] = '100%'
-        root.attrib['height'] = '100%'
-
+        root.attrib.pop('height')
+        
         # Add ids to dot-nodes
         # TODO: do more efficient xpath...
         scatgrid = root.find('.//*[@id="scatgrid"]')
@@ -337,7 +381,7 @@ class Compass:
         
         # export XML
         content = ET.tostring(root,  xml_declaration=True)
-        return content
+        return content.decode("utf-8")
 
         # TODO: 
         # add script    
@@ -353,26 +397,33 @@ class Compass:
     # PLOTTER DEFS
     def _matplotlibMarkerSize(self, ax):
 
-        start = ax.viewLim.min[1]
-        posMin = ax.transData.transform((0, start))
-        posMax = ax.transData.transform((0, start+1))
-        ax.transData.get_affine().transform((0, start))
-        
-        # where is center-point
-        # centerMax = ax.figure.transFigure.transform((0, start))
-        # centerMin = ax.figure.transFigure.transform((0, start))
-        # centerMax = ax.figure.transFigure.transform((0, start+1))
+        # start = ax.viewLim.min[1]
+        # posMin = ax.transData.transform((0, start))
+        # posMax = ax.transData.transform((0, start+1))
 
-        # centerMin = ax.figure.dpi_scale_trans.inverted().transform((0, start))
-        # centerMax = ax.figure.dpi_scale_trans.transform((0, start+1))
+        # posMin = ax.transAxes.transform((0, start))
+        # posMax = ax.transAxes.transform((0, start+1))
+        # ax.transAxes.transSubfigure.transform((0, start))
 
-        # centerX = (centerMax[0] - centerMin[0]) / 2
-        ax.transData.transform([(0, 1)]) - ax.transData.transform((0, 0))
+
+
+        # In matplotlib, 0,0 is the lower left corner, whereas it's usually the upper 
+        # left for most image software, so we'll flip the y-coords...
+        # plt.gca().set_aspect(1.5)
+        # plt.gca().get_aspect()
+
+        # Get the x and y data and transform it into pixel coordinates
+
+        # width, height = ax.figure.canvas.get_width_height()
+        # ypix = c
+
 
         # pythagoras for distance in pixel
-        a = posMax[0] - posMin[0]
-        b = posMax[1] - posMin[1]
-        c = math.sqrt(a**2+b**2)
+        # a = posMax[0] - posMin[0]
+        # b = posMax[1] - posMin[1]
+        # c = math.sqrt(a**2+b**2)
+
+        # points = (c/ax.figure.dpi*72)
 
         # ax.figure.dpi
 
@@ -381,11 +432,39 @@ class Compass:
 
         # convert between pixel and points (scatter requires point marker size)
         # assuming default ppi value of 72
-        UNEXPLAINED_FACTOR = 1.1 
-        points = c / 0.72 * UNEXPLAINED_FACTOR
+        # UNEXPLAINED_FACTOR = 1.1 
+        # points = c / 0.72 * UNEXPLAINED_FACTOR
 
 
         # return area: r2*
-        return ((points/2) ** 2)
+        # return ((points/2) ** 2)
+        # return points * self.config['markerSizeFactor']
+        
+        UNEXPLAINED_POINT_PIXEL_RATIO = 29
+        return self.config['markerSizeFactor'] * UNEXPLAINED_POINT_PIXEL_RATIO
+        # 1/ax.figure.dpi*72 * 
 
+    def curvedText(self, ax, radianX, y, text,  config, style={}):
 
+        transformation_rate = ax.figure.dpi/72
+
+        if not style.get('size'):
+            style['size'] = 9
+
+        wordWdth = textpath.TextPath((0,0), text, size=style['size']).get_extents().width * transformation_rate
+        
+        # identify pixel  per degree at this y-position
+        pixelpos0 = ax.transData.transform((math.radians(0), y))
+        pixelpos1 = ax.transData.transform((math.radians(0.001), y))
+        a = pixelpos0[0] - pixelpos1[0]
+        b = pixelpos0[1] - pixelpos1[1]
+        pixelPerDegree = math.sqrt(a**2+b**2) * 1000
+        degreePerPixel = 1/pixelPerDegree
+        # set cursor to the beginning of the word (half-word distance from x)
+        cursorPosition = radianX + math.radians(wordWdth*degreePerPixel/2)
+        letterSpace = 2
+        for char in text:
+            ax.text(cursorPosition, y, char, **style)
+            letterWidth = textpath.TextPath((0,0), char, size=style['size']).get_extents().width * transformation_rate
+            # move cursor forward by letter-width and some space
+            cursorPosition -= math.radians((letterWidth+letterSpace)*degreePerPixel)
