@@ -2,10 +2,12 @@
 
 from io import BytesIO
 import logging
-
+from scipy import stats
+    
 from cornice.service import Service
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 import numpy as np
+from numpy import random
 
 from fabrikApi.models.assembly import DBAssembly
 from fabrikApi.models.mixins import arrow
@@ -45,8 +47,6 @@ def cir(request):
         return x**(1.15)*100
     def skewedNormal(x):
         return x**(1.35)*100
-    def skewedStrong(x):
-        return x**2*100
     def polarized(x, exp):
         side = int(round(x*1000)) % 2
         x = x**exp*100
@@ -56,27 +56,26 @@ def cir(request):
     def polarizedSlight(x):
         return polarized(x, 1.7)
     def polarizedStrong(x):
-        return polarized(x, 2.5)
+        return polarized(x, 1)
 
+    rvars = np.random.rand(number)
     if distribution == 'skewed-slight':
         transform = skewedSlight
     elif distribution == 'skewed-normal':
         transform = skewedNormal
     elif distribution == 'skewed-strong':
-        transform = skewedStrong
+        transform = uniform
+        rvars=stats.beta.rvs(5,1,loc=0,scale=1,size=number)
     elif distribution == 'polarized-strong':
         transform = polarizedStrong
+        rvars=stats.beta.rvs(8,0.5,loc=0,scale=1,size=number)
     elif distribution == 'polarized-slight':
         transform = polarizedSlight
     else:
         transform = uniform
 
-    # enable static random numbers
-    # np.random.seed(5555)
-
-    # Populate the plot
     data = []
-    for i in np.random.rand(number):
+    for i in rvars:
         data.append(transform(i))
     
     compass = Compass(data=data, config=config)
@@ -88,19 +87,12 @@ def cir(request):
     root = ET.fromstring(f.getvalue())  # Convert to XML Element Templat
     f.truncate(0)  # empty stream again
     
-    # fig.set_figwidth(ext.width/fig.dpi*2)
-    # fig.set_figheight(ext.height/fig.dpi)
-    # remove margins...
-    # fig.subplots_adjust(**self.config["zoomUnits"])
-
-
-    
     # XML POST-MODIFICATIONS
     # set 100% size
     root.attrib['width'] = '100%'
     root.attrib.pop('height')
 
-    # Add ids to dot-nodes
+    # Add interactivity to dot-nodes
     # TODO: do more efficient xpath...
     scatgrid = root.find('.//*[@id="scatgrid"]')
     if scatgrid:
@@ -108,27 +100,10 @@ def cir(request):
         for i in range(len(nodes)):
             node = nodes[i]
             node.attrib['id'] = "dot%s" % i
-            # onmouseoverdot
-            node.attrib['onclick'] = "dotclick(this, %s);" % i
-            # node.attrib['cursor'] = "pointer"
-            node.attrib['pointer-events'] = "all"
-            # ="all"
+            node.attrib['onclick'] = "dmclick(this, %s);" % i
+            node.attrib['onmouseover'] = "dmover(this, %s);" % i
+            node.attrib['onmouseout'] = "dmout();"
 
     # export XML
     content = ET.tostring(root,  xml_declaration=True)
     return content.decode("utf-8")
-
-    # TODO:
-    # add script
-    # script = getSvgScript()
-    # Insert the script at the top of the file and save it.
-    # root.insert(0, ET.XML(script))
-    # # tree.set('onload', 'init(evt)')
-    # # tooltip = xmlid['mytooltip_{:03d}'.format(index)]
-    # onechild.set('id', 'dot1')
-    # content = f.getvalue()
-
-# PLOTTER DEFS
-
-
-

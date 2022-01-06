@@ -30,7 +30,7 @@ class Compass:
         self.ceilingy = 0
         self.config = {
             "markerSizeFactor": 1,  # factor to scale the markers (default 1)
-            "innery": 3,  # lowest y-value shown
+            "innery": 2,  # lowest y-value shown
             "chartAngle": 180,  # angle of the polar chart (180 = half-circle)
             "forceJustification": False,  # force left/rigth justifications of dots on each y-line
             "xAxisMax": 100,  # scale from 0 to 100
@@ -52,6 +52,7 @@ class Compass:
         self.outerY = self.config['minOuterY']
 
         # generate angles for baseline (=> innery)
+        
         self.generateSlotRow(self.config['innery'])
 
         # Add Data
@@ -80,8 +81,8 @@ class Compass:
         self.ceilingy = y
         
         # one above ceilingy
-        self.outerY = max(self.outerY, self.ceilingy + 1)
-
+        # self.outerY = max(self.config[''], self.ceilingy)
+        # self.outerY = self.ceilingy
 
     def getAngleByX(self, x):
         # TODO: use transformation functions
@@ -133,6 +134,7 @@ class Compass:
         # No free slot is found: => Extend the plot by another row.
         # add three new lines to the plot
         # for i in range(3):
+        self.outerY += 1
         self.generateSlotRow(self.outerY)
 
         # Run again, with this free slot.
@@ -160,7 +162,7 @@ class Compass:
         plt.rcParams['svg.fonttype'] = 'none'  # font installed on client
 
 
-        fig = plt.figure(frameon=True, dpi=400, figsize=(10,10))
+        fig = plt.figure(frameon=False, dpi=400, figsize=(10,10))
 
         # POLAR CHART
         ax = fig.add_subplot(projection='polar', aspect=1)
@@ -182,6 +184,11 @@ class Compass:
         self.curvedText(ax, radianX=sector*2.5, y=self.outerY+1,
                         text="Pro", style=style, config=self.config)
 
+        # BACKGROUND
+        ax.axvspan(0, np.pi/3*1, facecolor='g', alpha=0.1)
+        ax.axvspan(np.pi/3*1, np.pi/3*2, facecolor='b', alpha=0.1)
+        ax.axvspan(np.pi/3*2, np.pi/3*3, facecolor='r', alpha=0.1)
+
         # MARKERS
         dotSize = self._matplotlibMarkerSize(ax)
         xpos = list(map(lambda dot: math.radians(dot.angle), self.dots))
@@ -189,17 +196,11 @@ class Compass:
         alpha = 0.75  # remove alpha value (e.g. 'none' or 0.75)
         ax.scatter(xpos, ypos, gid='scatgrid', s=dotSize, alpha=alpha)
 
-        # background
-        # BACKGROUND
-        # ax.axvspan(0, np.pi/3*1, facecolor='g', alpha=0.05)
-        # ax.axvspan(np.pi/3*1, np.pi/3*2, facecolor='b', alpha=0.05)
-        # ax.axvspan(np.pi/3*2, np.pi/3*3, facecolor='r', alpha=0.05)
+        # Try gradiant backgrolor...
         # ax.axvspan(0, np.pi/3*3, facecolor=np.linspace(10, 20, 20000), cmap='PuBu', alpha=0.05)
-        fig.set_facecolor('red')
-
+        # fig.set_facecolor('red')
         # fig.gca().set_facecolor('yellow')
         # fig.patch.set_facecolor('xkcd   ')
-
         # from matplotlib import pyplot
         # from matplotlib.pyplot import figure, show, cm
         # ax.imshow([[0.,1.], [0.,1.]],
@@ -209,33 +210,12 @@ class Compass:
         #     extent=ext.bounds
         # )
 
-        # // NEW
-
         # FINAL FIGURE SIZE
-        # twice as width as height
-        # ext = ax.get_window_extent()
-        # fig.set_figwidth(ext.width/fig.dpi*2)
-        # array([ 320. ,  211.2, 2304. , 1689.6])
-        # fig.set_figheight(ext.height/fig.dpi)
-
-
-        # remove margins...
-        # orgHeight = fig.get_figheight()
-        # orgWidth = fig.get_figwidth()
+        # zoom in to remove margins...
         ext = fig.gca().get_window_extent()
         fig.set_figheight(ext.height/fig.dpi)
         fig.set_figwidth(ext.width/fig.dpi*2)
-        # width_factor = fig.get_figwidth()/orgWidth
-        # heigth_factor = fig.get_figheight()/orgHeight
-        # height = fig.get_figheight()*ext.bounds[0]/ext.bounds[1]
-        # fig.set_figwidth(fig.set_figheigh()/fig.dpi)
-        # # fig.subplots_adjust(**self.config["zoomUnits"])
-        # fig.set_figheight(ext.height/fig.dpi)
-        # fig.set_figheight(ext.height/fig.dpi)
-
-
         self.config["zoomUnits"] = {"top": 1+self.config['zoomFactor'], "bottom": -self.config['zoomFactor'], "left": -self.config['zoomFactor'], "right": 1+self.config['zoomFactor']}
-        # self.config["zoomUnits"] = {"top": 1.4, "bottom": -0.45, "left": 0, "right": 1}
         fig.subplots_adjust(**self.config["zoomUnits"])
         # canvas = FigureCanvas(fig)
         # canvas.print_figure('red-bg.png')
