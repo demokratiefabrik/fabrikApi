@@ -4,6 +4,7 @@ from io import BytesIO
 import logging
 
 from cornice.service import Service
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 import numpy as np
 
 from fabrikApi.models.assembly import DBAssembly
@@ -33,7 +34,7 @@ def cir(request):
     Return current cirplot
     """
 
-    config={}
+    config={"markerSizeFactor": float(request.GET.get('marker-size-factor', 1))}
 
     number = int(request.GET.get('number', 300))
     distribution = request.GET.get('distribution', 'uniform') 
@@ -80,17 +81,20 @@ def cir(request):
     
     compass = Compass(data=data, config=config)
 
-
     fig = compass.plot()
-
 
     f = BytesIO()
     fig.savefig(f, format='svg')
     root = ET.fromstring(f.getvalue())  # Convert to XML Element Templat
     f.truncate(0)  # empty stream again
+    
+    # fig.set_figwidth(ext.width/fig.dpi*2)
+    # fig.set_figheight(ext.height/fig.dpi)
+    # remove margins...
+    # fig.subplots_adjust(**self.config["zoomUnits"])
 
-    # fig.subplots_adjust(top=1.22, bottom=0.22, left=0, right=1, hspace=0)
 
+    
     # XML POST-MODIFICATIONS
     # set 100% size
     root.attrib['width'] = '100%'
