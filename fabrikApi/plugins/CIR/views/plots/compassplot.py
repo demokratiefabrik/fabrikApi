@@ -19,6 +19,7 @@ class Compass:
     freeSlotsByY = None
     dots = None
     rowsByY = None
+    fig = None # matplotlib figure
 
     # TODO: is ceilingy not same as outerY
 
@@ -185,9 +186,12 @@ class Compass:
                         text="Pro", style=style, config=self.config)
 
         # BACKGROUND
-        ax.axvspan(0, np.pi/3*1, facecolor='g', alpha=0.1)
-        ax.axvspan(np.pi/3*1, np.pi/3*2, facecolor='b', alpha=0.1)
-        ax.axvspan(np.pi/3*2, np.pi/3*3, facecolor='r', alpha=0.1)
+        # ax.axvspan(0, np.pi/3*1, facecolor='g', alpha=0.1)
+        # ax.axvspan(np.pi/3*1, np.pi/3*2, facecolor='b', alpha=0.1)
+        # ax.axvspan(np.pi/3*2, np.pi/3*3, facecolor='r', alpha=0.1)
+        # self.matplotlibGradient_image(ax, direction=1, extent=(0, 1, 0, 27), transform=ax.transAxes,
+        #             cmap=plt.cm.RdYlGn, cmap_range=(0.2, 0.8), alpha=0.2)
+        # Gradiants are too slow...
 
         # MARKERS
         dotSize = self._matplotlibMarkerSize(ax)
@@ -195,20 +199,6 @@ class Compass:
         ypos = list(map(lambda dot: dot.y, self.dots))
         alpha = 0.75  # remove alpha value (e.g. 'none' or 0.75)
         ax.scatter(xpos, ypos, gid='scatgrid', s=dotSize, alpha=alpha)
-
-        # Try gradiant backgrolor...
-        # ax.axvspan(0, np.pi/3*3, facecolor=np.linspace(10, 20, 20000), cmap='PuBu', alpha=0.05)
-        # fig.set_facecolor('red')
-        # fig.gca().set_facecolor('yellow')
-        # fig.patch.set_facecolor('xkcd   ')
-        # from matplotlib import pyplot
-        # from matplotlib.pyplot import figure, show, cm
-        # ax.imshow([[0.,1.], [0.,1.]],
-        #     cmap = pyplot.cm.Greens,
-        #     interpolation = 'bicubic',
-        #     alpha=1,
-        #     extent=ext.bounds
-        # )
 
         # FINAL FIGURE SIZE
         # zoom in to remove margins...
@@ -220,7 +210,27 @@ class Compass:
         # canvas = FigureCanvas(fig)
         # canvas.print_figure('red-bg.png')
 
+        self.fig = fig
         return fig
+
+    def matplotlibGradient_image(self, ax, extent, direction=0.3, cmap_range=(0, 1), **kwargs):
+        """
+        direction : float: The direction of the gradient. This is a number in
+            range 0 (=vertical) to 1 (=horizontal).
+        cmap_range : float, float
+            The fraction (cmin, cmax) of the colormap that should be
+            used for the gradient, where the complete colormap is (0, 1).
+        """
+        phi = direction * np.pi / 2
+        v = np.array([np.cos(phi), np.sin(phi)])
+        X = np.array([[v @ [1, 0], v @ [1, 1]],
+                    [v @ [0, 0], v @ [0, 1]]])
+        a, b = cmap_range
+        X = a + (b - a) / X.max() * X
+        im = ax.imshow(X, extent=extent, interpolation='bicubic',
+                    vmin=0, vmax=1, **kwargs)
+        return im
+
 
     def _matplotlibMarkerSize(self, ax):
 
@@ -236,6 +246,24 @@ class Compass:
         area = points**2  # convert to area => 11.11
 
         return self.config['markerSizeFactor'] * area * self.subplotZoomfactor()
+
+
+    def _matplotlib_svg_zoom_factor(self):
+        return self.config["zoomFactor"]/2
+        #TODO: why 2?
+
+    def _matplotlib_get_window_extent(self):
+            return self.fig.get_window_extent().width, \
+                self.fig.get_window_extent().height
+
+    def _matplotlib_get_polar_chart_position(self):
+        fh, fw = self._matplotlib_get_window_extent()
+        leftBottom = self.fig.gca().transData.transform((np.pi, self.outerY+0.5))
+        centerTop = self.fig.gca().transData.transform((np.pi/2, self.outerY+0.5))
+        x =  centerTop[0]
+        r = centerTop[0]-leftBottom[0]
+        y =  fh/2-leftBottom[1]
+        return x, y, r
 
     def subplotZoomfactor(self):
         return 10*self.config['zoomFactor']
