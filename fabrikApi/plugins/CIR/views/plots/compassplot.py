@@ -1,9 +1,11 @@
 """
 Polar projection, but in a rectangular box.
 """
+from io import BytesIO
 from matplotlib import cm
 import matplotlib.pyplot as plt
 import math
+from matplotlib.text import Annotation
 import matplotlib.textpath as textpath
 import numpy as np
 import math
@@ -31,14 +33,18 @@ class Compass:
         self.ceilingy = 0
         self.config = {
             "markerSizeFactor": 1,  # factor to scale the markers (default 1)
-            "innery": 2,  # lowest y-value shown
+            "markerColorMap": 'winter',  # factor to scale the markers (default 1)
+            "innery": 2,  # lowest y-value shown (center of the circle remains empty)
+            "xAxisLabels": [], # e.g. [(radians(90), 'Middle')]
+            "xAxisLabelsStyle": {"size": 28},
             "chartAngle": 180,  # angle of the polar chart (180 = half-circle)
             "forceJustification": False,  # force left/rigth justifications of dots on each y-line
             "xAxisMax": 100,  # scale from 0 to 100
-            "minOuterY": 20,  # empty polar plots are plotted with ylim(,20)
-            # to adapt the final chart: the lower half of the polar plot is cropped.
+            "yAxisOuterPadding": 1,  # append empty space at the end of the y-axis 
+            "minOuterY": 20,  # polar plots are plotted with atleast ylim(,20)
             "zoomFactor": 3.6/10, # the chart is zoomed in (because only the on half of the polar plot is used)
             # "maxOuterY" : 100 # NOT YET IMPLEMENTED
+
         }
 
         # update runtime config
@@ -54,14 +60,14 @@ class Compass:
 
         # generate angles for baseline (=> innery)
         
-        self.generateSlotRow(self.config['innery'])
+        self.generateBlankSlotRow(self.config['innery'])
 
         # Add Data
         if data:
             for i in data:
                 self.addValue(i)
 
-    def generateSlotRow(self, y):
+    def generateBlankSlotRow(self, y):
         """generate empty slots for new y row"""
 
         if y > self.outerY:
@@ -80,10 +86,6 @@ class Compass:
         dotList = row.getDotList()
         self.freeSlotsByY[y] = dotList
         self.ceilingy = y
-        
-        # one above ceilingy
-        # self.outerY = max(self.config[''], self.ceilingy)
-        # self.outerY = self.ceilingy
 
     def getAngleByX(self, x):
         # TODO: use transformation functions
@@ -136,7 +138,7 @@ class Compass:
         # add three new lines to the plot
         # for i in range(3):
         self.outerY += 1
-        self.generateSlotRow(self.outerY)
+        self.generateBlankSlotRow(self.outerY)
 
         # Run again, with this free slot.
         return self.assignValueToAFreeSlot(angle, value, skipBelowY=self.outerY)
@@ -149,108 +151,81 @@ class Compass:
         self.freeSlotsByY[slot.y].remove(slot)
 
         # create slots for row above..
-        self.generateSlotRow(slot.y + 1)
+        self.generateBlankSlotRow(slot.y + 1)
 
     def plot(self):
-        # %%
-        # SVG
-
-        # Figure DEFAULT
         # Should fasten the svg . not sure if this works
         # mplstyle.use('fast')
         plt.rcParams['font.family'] = 'Roboto'
         plt.rcParams['font.weight'] = 'light'
         plt.rcParams['svg.fonttype'] = 'none'  # font installed on client
 
+        self.fig = plt.figure(frameon=False, dpi=400, figsize=(10,10))
 
-        fig = plt.figure(frameon=False, dpi=400, figsize=(10,10))
-
-        # POLAR CHART
-        ax = fig.add_subplot(projection='polar', aspect=1)
+        # POLAR CHART CANVAS
+        ax = self.fig.add_subplot(projection='polar', aspect=1)
         ax.set_xlim(0, math.radians(self.config['chartAngle']))
-        ax.set_ylim(self.config['innery']-0.5, self.outerY+0.5)
+        ax.set_ylim(self.config['innery']-0.5, self.outerY+0.5+self.config['yAxisOuterPadding'])
         ax.set_rorigin(-self.config['innery'])
         ax.set_axisbelow(True)  # put grid behind dots
         plt.xticks([], [])
         ax.axes.yaxis.set_ticklabels([])
+        # ax.axes.yaxis.set_ticks([10,11,12],['a','b','c'])
 
-        # SECTOR LABELS
-        sector = math.radians(self.config['chartAngle']) / 3
-        style = {"rotation_mode": 'anchor', "transform_rotates_text": True,
-                 "ha": 'left', "rotation": 180, "size": 8*self.subplotZoomfactor()}
-        self.curvedText(ax, radianX=sector*0.5, y=self.outerY+1,
-                        text="Kontra", style=style, config=self.config)
-        self.curvedText(ax, radianX=sector*1.5, y=self.outerY+1,
-                        text="Unentschieden", style=style, config=self.config)
-        self.curvedText(ax, radianX=sector*2.5, y=self.outerY+1,
-                        text="Pro", style=style, config=self.config)
+        # ADAPT FIGURE SIZE (zoom in to remove margins...)
+        ext = self.fig.gca().get_window_extent()
+        self.fig.set_figheight(ext.height/self.fig.dpi)
+        self.fig.set_figwidth(ext.width/self.fig.dpi*2)
+        self.config["zoomUnits"] = {"top": 1+self.config['zoomFactor'], "bottom": -self.config['zoomFactor'], "left": -self.config['zoomFactor'], "right": 1+self.config['zoomFactor']}
+        self.fig.subplots_adjust(**self.config["zoomUnits"])
 
-        # BACKGROUND
+        # BACKGROUND SECTORS
         # ax.axvspan(0, np.pi/3*1, facecolor='g', alpha=0.1)
         # ax.axvspan(np.pi/3*1, np.pi/3*2, facecolor='b', alpha=0.1)
         # ax.axvspan(np.pi/3*2, np.pi/3*3, facecolor='r', alpha=0.1)
-        # self.matplotlibGradient_image(ax, direction=1, extent=(0, 1, 0, 27), transform=ax.transAxes,
-        #             cmap=plt.cm.RdYlGn, cmap_range=(0.2, 0.8), alpha=0.2)
-        # Gradiants are too slow...
+
+
+        # Draw Canvas before convert any pixel to font size etc...
+        self.fig.canvas.draw()
+
+        # x-Axis LABELS
+        for pos, label in self.config['xAxisLabels']:
+            self._matplotlib_curvedText(ax, radianX=pos, y=self.outerY+1+self.config['yAxisOuterPadding'], text=label, style=self.config['xAxisLabelsStyle'])
 
         # MARKERS
-        dotSize = self._matplotlibMarkerSize(ax)
-        xpos = list(map(lambda dot: math.radians(dot.angle), self.dots))
-        ypos = list(map(lambda dot: dot.y, self.dots))
+        dotParams = {"x":[], "y": [], "c": []}
+        for dot in self.dots:
+            dotParams["x"].append(math.radians(dot.angle))
+            dotParams["y"].append(dot.y)
+            dotParams["c"].append(dot.value)
         alpha = 0.75  # remove alpha value (e.g. 'none' or 0.75)
-        ax.scatter(xpos, ypos, gid='scatgrid', s=dotSize, alpha=alpha)
+        points = self._matplotlibGetYUnitInPoints(ax)*self.config['markerSizeFactor']
+        #  edgecolors=None
+        ax.scatter(gid='scatgrid', s=points**2, alpha=alpha, cmap=self.config['markerColorMap'], **dotParams)
+        # https://matplotlib.org/stable/tutorials/colors/colormaps.html
 
-        # FINAL FIGURE SIZE
-        # zoom in to remove margins...
-        ext = fig.gca().get_window_extent()
-        fig.set_figheight(ext.height/fig.dpi)
-        fig.set_figwidth(ext.width/fig.dpi*2)
-        self.config["zoomUnits"] = {"top": 1+self.config['zoomFactor'], "bottom": -self.config['zoomFactor'], "left": -self.config['zoomFactor'], "right": 1+self.config['zoomFactor']}
-        fig.subplots_adjust(**self.config["zoomUnits"])
-        # canvas = FigureCanvas(fig)
-        # canvas.print_figure('red-bg.png')
+    def plotAsXml(self):
+        
+        self.plot()
+        f = BytesIO()
+        self.fig.savefig(f, format='svg', dpi=self.fig.dpi)
+        xml = f.getvalue()
+        f.truncate(0)  # empty stream again
+        return xml
 
-        self.fig = fig
-        return fig
-
-    def matplotlibGradient_image(self, ax, extent, direction=0.3, cmap_range=(0, 1), **kwargs):
-        """
-        direction : float: The direction of the gradient. This is a number in
-            range 0 (=vertical) to 1 (=horizontal).
-        cmap_range : float, float
-            The fraction (cmin, cmax) of the colormap that should be
-            used for the gradient, where the complete colormap is (0, 1).
-        """
-        phi = direction * np.pi / 2
-        v = np.array([np.cos(phi), np.sin(phi)])
-        X = np.array([[v @ [1, 0], v @ [1, 1]],
-                    [v @ [0, 0], v @ [0, 1]]])
-        a, b = cmap_range
-        X = a + (b - a) / X.max() * X
-        im = ax.imshow(X, extent=extent, interpolation='bicubic',
-                    vmin=0, vmax=1, **kwargs)
-        return im
-
-
-    def _matplotlibMarkerSize(self, ax):
-
+    def _matplotlibGetYUnitInPixel(self, ax):
         start = ax.viewLim.min[1]
-        posMin = ax.transData.transform((0, start))
-        posMax = ax.transData.transform((0, start+1))
-
-        # pythagoras for distance in pixel
+        posMin = ax.transData.transform((np.pi/2, start))
+        posMax = ax.transData.transform((np.pi/2, start+1))
         a = posMax[0] - posMin[0]
         b = posMax[1] - posMin[1]
-        c = math.sqrt(a**2+b**2)
-        points = c/ax.figure.dpi*72  # 3.33
-        area = points**2  # convert to area => 11.11
+        return math.sqrt(a**2+b**2)
 
-        return self.config['markerSizeFactor'] * area * self.subplotZoomfactor()
-
-
-    def _matplotlib_svg_zoom_factor(self):
-        return self.config["zoomFactor"]/2
-        #TODO: why 2?
+    def _matplotlibGetYUnitInPoints(self, ax):
+        return  self._matplotlibGetYUnitInPixel(ax)* (72./ax.figure.dpi)
+    
+    def _matplotlibGetPointsInPixel(self, size):
+        return  size/(72./self.fig.dpi)
 
     def _matplotlib_get_window_extent(self):
             return self.fig.get_window_extent().width, \
@@ -258,26 +233,24 @@ class Compass:
 
     def _matplotlib_get_polar_chart_position(self):
         fh, fw = self._matplotlib_get_window_extent()
-        leftBottom = self.fig.gca().transData.transform((np.pi, self.outerY+0.5))
-        centerTop = self.fig.gca().transData.transform((np.pi/2, self.outerY+0.5))
+        leftBottom = self.fig.gca().transData.transform((np.pi, self.outerY+0.5+self.config['yAxisOuterPadding']))
+        centerTop = self.fig.gca().transData.transform((np.pi/2, self.outerY+0.5+self.config['yAxisOuterPadding']))
         x =  centerTop[0]
         r = centerTop[0]-leftBottom[0]
         y =  fh/2-leftBottom[1]
         return x, y, r
 
-    def subplotZoomfactor(self):
-        return 10*self.config['zoomFactor']
-        # TODO: why 10?
-
-    def curvedText(self, ax, radianX, y, text,  config, style={}):
+    def _matplotlib_curvedText(self, ax, radianX, y, text, style={}):
 
         transformation_rate = ax.figure.dpi/72
 
-        if not style.get('size'):
-            style['size'] = 9
+
+        curvedStyle =  {"rotation_mode": 'anchor', "transform_rotates_text": True,
+                 "ha": 'left', "rotation": 180, "size": 8}
+        curvedStyle.update(style)
 
         wordWdth = textpath.TextPath(
-            (0, 0), text, size=style['size']).get_extents().width * transformation_rate
+            (0, 0), text, size=curvedStyle['size']).get_extents().width * transformation_rate
 
         # identify pixel  per degree at this y-position
         pixelpos0 = ax.transData.transform((math.radians(0), y))
@@ -290,13 +263,11 @@ class Compass:
         cursorPosition = radianX + math.radians(wordWdth*degreePerPixel/2)
         letterSpace = 2
         for char in text:
-            ax.text(cursorPosition, y, char, **style)
-            letterWidth = textpath.TextPath(
-                (0, 0), char, size=style['size']).get_extents().width * transformation_rate
-            # move cursor forward by letter-width and some space
-            cursorPosition -= math.radians((letterWidth +
-                                           letterSpace)*degreePerPixel)
-
+            ax.text(cursorPosition, y, char, **curvedStyle)
+            # cursor position
+            tempText = textpath.TextPath((0, 0), char, size=curvedStyle['size'])
+            letterWidth = tempText.get_extents().width * transformation_rate
+            cursorPosition -= math.radians((letterWidth + letterSpace)*degreePerPixel)
 
 class CompassDot:
     value = None  # value on 1:100 scale

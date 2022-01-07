@@ -2,6 +2,7 @@
 
 from io import BytesIO
 import logging
+import math
 from scipy import stats
     
 from cornice.service import Service
@@ -20,24 +21,8 @@ import lxml.etree as ET
 logger = logging.getLogger(__name__)
 
 
-# SERVICES
-cirplot = Service(
-    cors_origins=('*',),
-    name='cirplot', 
-    renderer='string',
-    content_type='image/svg+xml',
-    description='Show Assembly Plot.', 
-    path='/cirplot')
 
-# , headers={'Content-Disposition': 'File Transfer', 'Content-Type': 'application/force-download'})
-@cirplot.get(permission='public')
-def cir(request):
-    """
-    Return current cirplot
-    """
-
-    config={"markerSizeFactor": float(request.GET.get('marker-size-factor', 1))}
-
+def get_data(request):
     number = int(request.GET.get('number', 300))
     distribution = request.GET.get('distribution', 'uniform') 
 
@@ -77,18 +62,49 @@ def cir(request):
     data = []
     for i in rvars:
         data.append(transform(i))
-    
+
+    return data
+
+
+
+# SERVICES
+cirplot = Service(
+    cors_origins=('*',),
+    name='cirplot', 
+    renderer='string',
+    content_type='image/svg+xml',
+    description='Show Assembly Plot.', 
+    path='/cirplot')
+
+# , headers={'Content-Disposition': 'File Transfer', 'Content-Type': 'application/force-download'})
+@cirplot.get(permission='public')
+def cir(request):
+    """
+    Return current cirplot
+    """
+
+    config={
+        "markerSizeFactor": float(request.GET.get('marker-size-factor', 1)),
+        "markerColorMap": request.GET.get('marker-color-map', 'winter'),
+        "xAxisLabels":  [
+            (math.radians(10), 'Kontra'),
+            (math.radians(90), 'Unentschieden'),
+            (math.radians(170), 'Pro')
+        ]
+    }
+    data = get_data(request)
     compass = Compass(data=data, config=config)
+    xml = compass.plotAsXml()    
 
-    fig = compass.plot()
 
-    f = BytesIO()
-    fig.savefig(f, format='svg', dpi=fig.dpi)
-    root = ET.fromstring(f.getvalue())  # Convert to XML Element Templat
-    f.truncate(0)  # empty stream again
-    
     # XML POST-MODIFICATIONS
+
+    # following nodes are renderes as last (for on-top/vertical ordering.)
+    selectedNodeIds = [60]
+    selectedNodeEls = []
+
     # set 100% size
+    root = ET.fromstring(xml)  # Convert to XML Element Templat
     root.attrib['width'] = '100%'
     root.attrib.pop('height')
     
@@ -100,31 +116,40 @@ def cir(request):
         for i in range(len(nodes)):
             node = nodes[i]
             node.attrib['id'] = "dot%s" % i
+            node.attrib['pos'] = "%s" % i
             node.attrib['onclick'] = "dmclick(this, %s);" % i
             node.attrib['onmouseover'] = "dmover(this, %s);" % i
-            node.attrib['onmouseout'] = "dmout();"
+            # node.attrib['onmouseleave'] = "dmout(this);"
+            if i in selectedNodeIds:
+                selectedNodeEls.append(node)
 
-    # Append Background to Image
-    # viewbox
-    # viewBox = root.attrib['viewBox'].split(" ")
-    # viewBoxWidth = float(viewBox[2])
-    # viewBoxHeight = float(viewBox[3])
-    z = compass._matplotlib_svg_zoom_factor()
-    x, y, r = compass._matplotlib_get_polar_chart_position()
-    bgEl = ET.fromstring("""<g id="bgpattern">
-        <defs>
-        <path id="meab67247b1" d="M 0 7.284288  C 1.931816 7.284288 3.784769 6.516769 5.150769 5.150769  C 6.516769 3.784769 7.284288 1.931816 7.284288 0  C 7.284288 -1.931816 6.516769 -3.784769 5.150769 -5.150769  C 3.784769 -6.516769 1.931816 -7.284288 0 -7.284288  C -1.931816 -7.284288 -3.784769 -6.516769 -5.150769 -5.150769  C -6.516769 -3.784769 -7.284288 -1.931816 -7.284288 0  C -7.284288 1.931816 -6.516769 3.784769 -5.150769 5.150769  C -3.784769 6.516769 -1.931816 7.284288 0 7.284288  z " style="stroke: #1f77b4; stroke-opacity: 0.75"/>
-                                    <linearGradient id="myGradient" gradientTransform="rotate(90)">
-        <stop offset="5%%"  stop-color="gold" />
-        <stop offset="95%%" stop-color="red" />
-        </linearGradient>
-        </defs>
-        <circle cx="%s" cy="%s" r="%s" fill="url('#myGradient')" />
-    </g>""" % (x*z, y*z, r*z))
-    axes1El = root.find('.//*[@id="axes_1"]')
-    axes1El.insert(1, bgEl)
+        for sel in selectedNodeEls:
+            g = sel.getparent()
+            scatgrid.append(g) 
+            # test_list.insert(0, test_list.pop())
+            pass
+
+        # Ad new element
+        # ET.SubElement(root,"use", id='placeholder')
+
+
+    # Append Background to XML Image
+    # z = compass.config['zoomFactor']/2
+    # x, y, r = compass._matplotlib_get_polar_chart_position()
+    # bgEl = ET.fromstring("""<g id="bgpattern">
+    #     <defs>
+    #     <path id="meab67247b1" d="M 0 7.284288  C 1.931816 7.284288 3.784769 6.516769 5.150769 5.150769  C 6.516769 3.784769 7.284288 1.931816 7.284288 0  C 7.284288 -1.931816 6.516769 -3.784769 5.150769 -5.150769  C 3.784769 -6.516769 1.931816 -7.284288 0 -7.284288  C -1.931816 -7.284288 -3.784769 -6.516769 -5.150769 -5.150769  C -6.516769 -3.784769 -7.284288 -1.931816 -7.284288 0  C -7.284288 1.931816 -6.516769 3.784769 -5.150769 5.150769  C -3.784769 6.516769 -1.931816 7.284288 0 7.284288  z " style="stroke: #1f77b4; stroke-opacity: 0.75"/>
+    #     <linearGradient id="myGradient" >
+    #     <stop offset="0%%"  stop-color="gold" />
+    #     <stop offset="100%%" stop-color="blue" />
+    #     </linearGradient>
+    #     </defs>
+    #     <circle cx="%s" cy="%s" r="%s" fill="url('#myGradient')" />
+    # </g>""" % (x*z, y*z, r*z))
+    # axes1El = root.find('.//*[@id="axes_1"]')
+    # axes1El.insert(1, bgEl)
 
 
     # export XML
-    content = ET.tostring(root,  xml_declaration=True)
+    content = ET.tostring(root,  xml_declaration=True, encoding="UTF-8")
     return content.decode("utf-8")
