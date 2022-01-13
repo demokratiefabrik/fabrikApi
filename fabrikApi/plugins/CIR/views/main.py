@@ -13,7 +13,7 @@ from numpy import random
 from fabrikApi.models.assembly import DBAssembly
 from fabrikApi.models.mixins import arrow
 # from fabrikApi.plugins.CIR.views.plots.beeplot import beeplot
-from fabrikApi.plugins.CIR.views.plots.compassplot import Compass
+from fabrikApi.plugins.CIR.views.plots.polarbee import Compass
 # from fabrikApi.util.cors import CORS_LOCATION, CORS_MAX_AGE
 import lxml.etree as ET
 
@@ -115,11 +115,11 @@ def cir(request):
         nodes = scatgrid.findall('.//*[@clip-path]/*')
         for i in range(len(nodes)):
             node = nodes[i]
-            node.attrib['id'] = "dot%s" % i
-            node.attrib['pos'] = "%s" % i
+            node.attrib['id'] = "dot%s" % i # Temporary
+            node.attrib['value'] = "%s" % round(compass.dots[i].value) # Temporary
+            node.attrib['pos'] = "%s" % i # Original Position in List (used for z-index reordering)
             node.attrib['onclick'] = "dmclick(this, %s);" % i
             node.attrib['onmouseover'] = "dmover(this, %s);" % i
-            # node.attrib['onmouseleave'] = "dmout(this);"
             if i in selectedNodeIds:
                 selectedNodeEls.append(node)
 

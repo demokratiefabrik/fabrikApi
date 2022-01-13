@@ -103,7 +103,7 @@ class DBUser(BaseDefaultObject, Base):
         
         # days since last interactivity
         days_since_last_interactivity = 0
-        last_session = self.date_last_interaction
+        # last_session = self.date_last_interaction
         if self.date_last_interaction:
             days_since_last_interactivity = number_of_days_passed(self.date_last_interaction)
 

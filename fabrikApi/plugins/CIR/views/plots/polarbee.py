@@ -44,7 +44,6 @@ class Compass:
             "minOuterY": 20,  # polar plots are plotted with atleast ylim(,20)
             "zoomFactor": 3.6/10, # the chart is zoomed in (because only the on half of the polar plot is used)
             # "maxOuterY" : 100 # NOT YET IMPLEMENTED
-
         }
 
         # update runtime config

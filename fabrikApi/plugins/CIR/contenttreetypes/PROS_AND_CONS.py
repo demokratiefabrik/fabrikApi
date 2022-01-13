@@ -2,10 +2,6 @@
 """
 Juxtaposing Pros and Cons Argument, and allowing for asynch. discussions.
 """
-import random
-import ipaddress
-
-# import types
 
 __all__ = ['patch', __doc__]
 
