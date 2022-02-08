@@ -35,7 +35,7 @@ RUN set -e; \
   # addgroup -g 982 -S www-data ; 
   # adduser -u 982 -D -S -G www-data www-data && exit 0 ; exit 1 ;
 
-# only for DEMO (test)
+# only for DEMO (test2)
 RUN pip install scipy
 
 RUN pip install -r requirements.txt --cache-dir /opt/app/pip_cache; \
