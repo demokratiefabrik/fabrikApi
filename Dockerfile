@@ -34,6 +34,10 @@ RUN set -e; \
   adduser -D -H -u 1000 -s /bin/bash www-data -G www-data;
   # addgroup -g 982 -S www-data ; 
   # adduser -u 982 -D -S -G www-data www-data && exit 0 ; exit 1 ;
+
+# only for DEMO
+RUN pip install scipy
+
 RUN pip install -r requirements.txt --cache-dir /opt/app/pip_cache; \
   rm -Rf /opt/app/pip_cache; \
   rm -Rf /opt/app/.pytest_cache; \

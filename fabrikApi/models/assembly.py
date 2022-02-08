@@ -319,7 +319,8 @@ class DBAssembly(BaseDefaultObject, AssemblyPluginInterface, Base):
 
         if request.assembly.is_participant(request):
             stages = {
-                key: value for (key, value) in stages.items() if not value['progression'] or value['progression'].is_active
+                key: value for (key, value) in stages.items() if value['stage'].is_active
+                # COMMENT: do not see the meaning of this: progressions do not have is_active methods... or value['progression'].is_active
             }
 
         return stages

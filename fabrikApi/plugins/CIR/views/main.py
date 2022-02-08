@@ -1,17 +1,17 @@
 """ Assemblies List View. """
 
-from io import BytesIO
+# from io import BytesIO
 import logging
 import math
 from scipy import stats
     
 from cornice.service import Service
-from matplotlib.backends.backend_agg import FigureCanvasAgg
+# from matplotlib.backends.backend_agg import FigureCanvasAgg
 import numpy as np
-from numpy import random
+# from numpy import random
 
-from fabrikApi.models.assembly import DBAssembly
-from fabrikApi.models.mixins import arrow
+# from fabrikApi.models.assembly import DBAssembly
+# from fabrikApi.models.mixins import arrow
 # from fabrikApi.plugins.CIR.views.plots.beeplot import beeplot
 from fabrikApi.plugins.CIR.views.plots.polarbee import Compass
 # from fabrikApi.util.cors import CORS_LOCATION, CORS_MAX_AGE

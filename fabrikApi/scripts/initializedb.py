@@ -106,7 +106,7 @@ def setup_data(request):
     print("--- INTRODUCTION --- ")
     c11 = import_tree(
         request=request,
-        file="CIR_TEXTSHEET_INTRODUCTION",
+        file="TEXTSHEET_INTRODUCTION",
         assembly=assembly1,
         info = "Sie finden hier alle Informationen rund um diesen Event. Schauen Sie sich diese Informationen an. Sie haben auch sptäter noch jederzeit Gelegenheit hierher zurückzukehren.",
         title="Was Sie wissen müssen",
@@ -154,7 +154,7 @@ def setup_data(request):
 
     stage5 = DBStage(
         title="Erste Resultate",
-        type_='CIR_ANALYSIS',
+        type_='ANALYSIS',
         info="Hier stellen wir Ihnen erste, provisorische Resultate zusammen. Was ist den Teilnehmenden Stimmbürgern für die nächste Legislatur besonders wichtig?",
         assembly=assembly1,
         contenttree=c12)

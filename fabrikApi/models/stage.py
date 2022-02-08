@@ -247,7 +247,7 @@ class DBStageProgression(BaseProgressionObject, Base):
     #     self.date_locked = arrow.utcnow()
 
 
-    @property
-    def is_active(self):
-        return not self.completed
-        # self.locked and 
+    # @property
+    # def is_active(self):
+    #     return not self.completed
+    #     # self.locked and 

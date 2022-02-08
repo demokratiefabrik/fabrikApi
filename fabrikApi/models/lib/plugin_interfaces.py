@@ -344,7 +344,7 @@ class StagePluginInterface(object):
     StageTypes = {}
     # "SURVEY": "SURVEY",
     # "CIR": "CIR",
-    # "CIR_ANALYSIS": "CIR_ANALYSIS",
+    # "ANALYSIS": "ANALYSIS",
     # "VAA_QUESTIONS": "VAA_QUESTIONS",
     # "VAA_TOPICS": "VAA_TOPICS",
     # "VAA_CONCLUSION": "VAA_CONCLUSION",
